@@ -1,0 +1,12 @@
+{
+  "files.associations": {
+    "*.sql": "sql",
+    "myshell.h": "c",
+    "unistd.h": "c",
+    "process.h": "c",
+    "stdio.h": "c",
+    "string.h": "c",
+    "io.h": "c",
+    "stdbool.h": "c"
+  }
+}
