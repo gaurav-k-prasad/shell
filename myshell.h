@@ -19,6 +19,9 @@ int myStrcmp(const char *a, const char *b);
 char* myGetenv(const char *name, char **env);
 int myStrlen(const char *str);
 int myStrnicmp(const char *a, const char *b, int n);
+char *myStrdup(const char *str);
+void myStrcpy(char *str1, const char *str2);
+char *myStrchr(const char *input, const char delimiter);
 
 // Built in function implementation
 int commandCd(char **args, char *initialDirectory);

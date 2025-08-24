@@ -64,28 +64,34 @@ char *myGetenv(const char *name, char **env)
   return NULL;
 }
 
-char *getFullPathOfWhich(char *command, char **env)
+void myStrcpy(char *str1, const char *str2)
 {
-  // Locate the path
-  char *pathEnv = myGetenv("PATH", env);
-  if (!pathEnv)
+  size_t strLen = myStrlen(str2);
+
+  for (int i = 0; i < strLen; i++)
   {
-    return NULL;
+    str1[i] = str2[i];
   }
+  str1[strLen] = '\0';
+}
 
-  char *tok = strtok(pathEnv, ";");
-  char buff[1024] = {'\0'};
+char *myStrdup(const char *str)
+{
+  if (str == NULL)
+    return NULL;
+  size_t _strlen = myStrlen(str);
+  char *dup = (char *)malloc(sizeof(char) * (_strlen + 1));
 
-  while (tok)
-  {
-    snprintf(buff, sizeof(buff), "%s\\%s", tok, command);
-    if (access(buff, X_OK) == 0)
-    {
-      printf("Found: %s\n", buff);
-      return NULL;
+  myStrcpy(dup, str);
+  return dup;
+}
+
+char *myStrchr(const char *str, const char delimiter) {
+  while (*str) {
+    if (*str == delimiter) {
+      return (char *)str;
     }
-
-    tok = strtok(NULL, ";");
+    str++;
   }
 
   return NULL;

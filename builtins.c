@@ -1,5 +1,13 @@
 #include "myshell.h"
 
+#ifdef _WIN32
+const char sep[] = ";";
+const char pathSeparator[] = "\\";
+#else
+const char sep[] = ":";
+const char pathSeparator[] = "/";
+#endif
+
 /*
  * `cd [path]`
  * `cd ..`
@@ -105,15 +113,18 @@ int commandEnv(char **env)
 
 int commandWhich(char **args, char **env)
 {
-  if (args[1] == NULL) {
+  if (args[1] == NULL)
+  {
     fprintf(stderr, "which: expected a filename: which [file]");
     return 1;
   }
 
   const char *builtIns[] = {"cd", "pwd", "echo", "env", "unsetenv", "setenv", "exit", "which"};
-  
-  for (int i = 0; i < sizeof(builtIns) / sizeof(char *); i++) {
-    if (myStrcmp(builtIns[i], args[1]) == 0) {
+
+  for (int i = 0; i < sizeof(builtIns) / sizeof(char *); i++)
+  {
+    if (myStrcmp(builtIns[i], args[1]) == 0)
+    {
       fprintf(stdout, "%s: shell built-in command\n", builtIns[i]);
       return 0;
     }
@@ -122,4 +133,36 @@ int commandWhich(char **args, char **env)
   char *fullpath = getFullPathOfWhich(args[1], env);
 
   return 0;
+}
+
+char *getFullPathOfWhich(char *command, char **env)
+{
+  // Locate the path
+  char *pathEnv = myGetenv("PATH", env);
+  if (!pathEnv)
+  {
+    return NULL;
+  }
+
+  char *tok = strtok(pathEnv, sep);
+  char buff[1024] = {'\0'};
+
+  while (tok)
+  {
+    size_t len = myStrlen(tok);
+    if (tok[len - 1] != *pathSeparator)
+      snprintf(buff, sizeof(buff), "%s%s%s", tok, pathSeparator, command);
+    else
+      snprintf(buff, sizeof(buff), "%s%s", tok, command);
+
+    if (access(buff, X_OK) == 0)
+    {
+      printf("Found: %s\n", buff);
+      return NULL;
+    }
+
+    tok = strtok(NULL, sep);
+  }
+
+  return NULL;
 }
