@@ -12,7 +12,7 @@
 char **parseInput(char *input);
 void freeTokens(char **tokens);
 void freeEnv(char **env);
-int shellBuilts(char **args, char ***env, char *initialDirectory);
+int shellBuilts(char **args, char **env, char *initialDirectory);
 char *getFullPathOfWhich(char *command, char **env);
 char **cloneEnv(char **env);
 

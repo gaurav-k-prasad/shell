@@ -249,7 +249,7 @@ char **commandExport(char **args, char **env)
   }
   strncpy(varname, args[1], varnamelen);
   varname[varnamelen] = '\0';
-  str++; // skip =
+  str++; // skip '='
 
   // get the value by expanding the value string eg $PATH => /usr/bin:/usr/local/bin...
   char *varvalue = parseString(str, env);
@@ -311,8 +311,12 @@ char **commandExport(char **args, char **env)
   return newEnv;
 }
 
-/*
- * function to unset enviornment variable
+/**
+ * @brief sets the enviornment variable 
+ * 
+ * @param args arguments passed to the command
+ * @param env enviornment variables
+ * @return char** 
  */
 char **commandUnset(char **args, char **env)
 {
@@ -322,14 +326,13 @@ char **commandUnset(char **args, char **env)
     return env;
   }
 
+  // count env
   size_t envCount = 0;
   while (env[envCount])
     envCount++;
 
   if (envCount == 0)
     return env; // nothing to unset
-
-  printf("%d\n", envCount);
 
   // in case variable not removed - makes sure there's always space for NULL
   char **newEnv = malloc(sizeof(char *) * (envCount + 1)); // removing 1 and a adding null terminator
@@ -409,6 +412,7 @@ char **cloneEnv(char **env)
 
   for (int i = 0; env[i]; i++)
   {
+    // clone everything
     len = myStrlen(env[i]);
     curr = (char *)malloc(sizeof(char) * (len + 1));
     if (!curr)

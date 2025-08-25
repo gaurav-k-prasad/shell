@@ -1,13 +1,13 @@
 #include "myshell.h"
 
 void shellLoop(char **env);
-int shellBuilts(char **args, char ***env, char *initialDirectory);
+int shellBuilts(char **args, char **env, char *initialDirectory);
 
 int main(int argc, char const *argv[], char *env[])
 {
   (void)argc;
   (void)argv;
-  
+
   shellLoop(env);
   return 0;
 }
@@ -21,15 +21,20 @@ void shellLoop(char **envp)
   char buff[1024];
   char **env = cloneEnv(envp);
 
-  if (!env) {
+  if (!env)
+  {
     fprintf(stderr, "enviornment duplication failed");
     exit(EXIT_FAILURE);
   }
+  char *userName = myGetenv("USERNAME", env);
 
   while (1)
   {
     getcwd(buff, sizeof(buff));
-    fprintf(stdout, "\033[35m[%s]> \033[0m", buff); // ANSI format coloring
+    if (userName)
+      fprintf(stdout, "\033[32m@%s [%s]> \033[0m", userName, buff); // ANSI format coloring
+    else
+      fprintf(stdout, "\033[32m[%s]> \033[0m", buff); // ANSI format coloring
 
     if (getline(&input, &input_size, stdin) == -1) // end of file -> (ctrl + z -> Enter)
     {
@@ -38,19 +43,32 @@ void shellLoop(char **envp)
     }
 
     args = parseInput(input);
-    if (!args) {
+    if (!args)
+    {
       fprintf(stderr, "parsing failed");
       continue;
     }
 
     if (args[0]) // if no arguments
     {
-      shellBuilts(args, &env, initialDirectory);
+      if (myStrcmp(args[0], "export") == 0)
+      {
+        env = commandExport(args, env);
+      }
+      else if (myStrcmp(args[0], "unset") == 0)
+      {
+        env = commandUnset(args, env);
+      }
+      else
+      {
+        shellBuilts(args, env, initialDirectory);
+      }
     }
 
     freeTokens(args);
   }
 
+  free(userName);
   freeEnv(env);
 }
 
@@ -69,7 +87,7 @@ void shellLoop(char **envp)
  * ls
  * cat ...
  */
-int shellBuilts(char **args, char ***env, char *initialDirectory)
+int shellBuilts(char **args, char **env, char *initialDirectory)
 {
   if (myStrcmp(args[0], "cd") == 0)
   {
@@ -81,25 +99,15 @@ int shellBuilts(char **args, char ***env, char *initialDirectory)
   }
   else if (myStrcmp(args[0], "echo") == 0)
   {
-    return commandEcho(args, *env);
+    return commandEcho(args, env);
   }
   else if (myStrcmp(args[0], "env") == 0)
   {
-    commandEnv(*env);
-  }
-  else if (myStrcmp(args[0], "export") == 0)
-  {
-    *env = commandExport(args, *env);
-    return 0;
-  }
-  else if (myStrcmp(args[0], "unset") == 0)
-  {
-    *env = commandUnset(args, *env);
-    return 0;
+    commandEnv(env);
   }
   else if (myStrcmp(args[0], "which") == 0)
   {
-    commandWhich(args, *env);
+    commandWhich(args, env);
   }
   else if (myStrcmp(args[0], "exit") == 0 || myStrcmp(args[0], "quit") == 0)
   {
