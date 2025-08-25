@@ -57,7 +57,15 @@ char *myGetenv(const char *name, char **env)
     {
       int envValLen = myStrlen(env[i] + nameLen + 1);
       char *buff = (char *)malloc(sizeof(char) * (envValLen + 1));
+
+      if (!buff)
+      {
+        fprintf(stderr, "malloc failed\n");
+        exit(EXIT_FAILURE);
+      }
+
       strcpy(buff, env[i] + nameLen + 1);
+      buff[envValLen] = '\0';
       return buff;
     }
   }
@@ -80,19 +88,73 @@ char *myStrdup(const char *str)
   if (str == NULL)
     return NULL;
   size_t _strlen = myStrlen(str);
-  char *dup = (char *)malloc(sizeof(char) * (_strlen + 1));
+  char *dup = (char *)malloc(sizeof(char) * (_strlen + 1)); // caller has to free
+  if (!dup) {
+    fprintf(stderr, "malloc failed\n");
+    exit(EXIT_FAILURE);
+  }
 
   myStrcpy(dup, str);
   return dup;
 }
 
-char *myStrchr(const char *str, const char delimiter) {
-  while (*str) {
-    if (*str == delimiter) {
+char *myStrchr(const char *str, const char delimiter)
+{
+  while (*str)
+  {
+    if (*str == delimiter)
+    {
       return (char *)str;
     }
     str++;
   }
 
   return NULL;
+}
+
+char *parseString(char *str, char **env)
+{
+  if (str == NULL)
+    return NULL;
+
+  char *res = (char *)malloc(sizeof(char) * 4096);
+  if (res == NULL)
+  {
+    fprintf(stderr, "malloc failed\n");
+    exit(EXIT_FAILURE);
+  }
+  int i = 0;
+  int resIndex = 0;
+
+  while (str[i])
+  {
+    if (str[i] == '$')
+    {
+      i++;
+      char buff[256];
+      int j = 0;
+
+      while (str[i] && (isalnum(str[i]) || str[i] == '_'))
+        buff[j++] = str[i++];
+      buff[j] = '\0';
+
+      char *envVal = myGetenv(buff, env);
+      if (envVal == NULL)
+        continue;
+        
+      int temp = 0;
+      while (envVal[temp])
+      {
+        res[resIndex++] = envVal[temp++];
+      }
+      free(envVal);
+    }
+    else
+    {
+      res[resIndex++] = str[i++];
+    }
+  }
+  res[resIndex] = '\0';
+
+  return res;
 }

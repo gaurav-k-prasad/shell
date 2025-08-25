@@ -1,7 +1,7 @@
 #include "myshell.h"
 
 void shellLoop(char **env);
-int shellBuilts(char **args, char **env, char *initialDirectory);
+int shellBuilts(char **args, char ***env, char *initialDirectory);
 
 int main(int argc, char const *argv[], char *env[])
 {
@@ -12,13 +12,19 @@ int main(int argc, char const *argv[], char *env[])
   return 0;
 }
 
-void shellLoop(char **env)
+void shellLoop(char **envp)
 {
   char *input = NULL;
   size_t input_size = 0;
   char **args;
   char *initialDirectory = getcwd(NULL, 0);
   char buff[1024];
+  char **env = cloneEnv(envp);
+
+  if (!env) {
+    fprintf(stderr, "enviornment duplication failed");
+    exit(EXIT_FAILURE);
+  }
 
   while (1)
   {
@@ -32,32 +38,38 @@ void shellLoop(char **env)
     }
 
     args = parseInput(input);
+    if (!args) {
+      fprintf(stderr, "parsing failed");
+      continue;
+    }
 
     if (args[0]) // if no arguments
     {
-      shellBuilts(args, env, initialDirectory);
+      shellBuilts(args, &env, initialDirectory);
     }
 
     freeTokens(args);
   }
+
+  freeEnv(env);
 }
 
 /*
- $ builtins - 
+ $ builtins -
  *  1. cd
  *  2. pwd
  *  3. echo
  *  4. env
- *  5. setenv
- *  6. unsetenv
+ *  5. export
+ *  6. unset
  *  7. which
  *  8. exit
-  
- $ executor binary - 
+
+ $ executor binary -
  * ls
  * cat ...
  */
-int shellBuilts(char **args, char **env, char *initialDirectory)
+int shellBuilts(char **args, char ***env, char *initialDirectory)
 {
   if (myStrcmp(args[0], "cd") == 0)
   {
@@ -69,23 +81,25 @@ int shellBuilts(char **args, char **env, char *initialDirectory)
   }
   else if (myStrcmp(args[0], "echo") == 0)
   {
-    return commandEcho(args, env);
+    return commandEcho(args, *env);
   }
   else if (myStrcmp(args[0], "env") == 0)
   {
-    commandEnv(env);
+    commandEnv(*env);
   }
-  else if (myStrcmp(args[0], "setenv") == 0)
+  else if (myStrcmp(args[0], "export") == 0)
   {
-    // commandSetenv(args, env);
+    *env = commandExport(args, *env);
+    return 0;
   }
-  else if (myStrcmp(args[0], "unsetenv") == 0)
+  else if (myStrcmp(args[0], "unset") == 0)
   {
-    // commandUnsetenv(args, env);
+    *env = commandUnset(args, *env);
+    return 0;
   }
   else if (myStrcmp(args[0], "which") == 0)
   {
-    commandWhich(args, env);
+    commandWhich(args, *env);
   }
   else if (myStrcmp(args[0], "exit") == 0 || myStrcmp(args[0], "quit") == 0)
   {

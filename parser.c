@@ -2,17 +2,20 @@
 
 char **parseInput(char *input)
 {
-  size_t buffer_size = MAX_INPUT_BUF;
-  char **tokens = (char **)malloc(buffer_size * sizeof(char *));
+  if (!input) {
+    return NULL;
+  }
+  
+  char **tokens = (char **)malloc(MAX_INPUT_BUF * sizeof(char *));
+  if (!tokens) {
+    fprintf(stderr, "malloc failed\n");
+    exit(EXIT_FAILURE);
+  }
+
   char *token = NULL;
   size_t position = 0;
   size_t tokenLength = 0;
-
-  if (!tokens)
-  {
-    perror("malloc failed");
-    exit(EXIT_FAILURE);
-  }
+  tokens[0] = NULL;
 
   for (size_t i = 0; input[i] != '\0';)
   {
@@ -30,11 +33,12 @@ char **parseInput(char *input)
       i++;
     }
 
-    tokens[position] = malloc((tokenLength + 1) * sizeof(char)); // +1 for EOF
+    tokens[position] = malloc((tokenLength + 1) * sizeof(char)); // +1 for NULL
 
     if (!tokens[position])
     {
       perror("malloc failed");
+      freeTokens(tokens);
       exit(EXIT_FAILURE);
     }
 
@@ -44,16 +48,20 @@ char **parseInput(char *input)
     }
     tokens[position][tokenLength] = '\0'; // null terminate the token
     position++;
+    tokens[position] = NULL; // NULL terminate array
     tokenLength = 0; // reset token length
     token = NULL;
   }
 
-  tokens[position] = NULL; // Terminate array with null
   return tokens;
 }
 
 // Free allocated memory
 void freeTokens(char **tokens) {
+  if (!tokens) {
+    return;
+  }
+  
   for (int i = 0; tokens[i]; i++) {
     free(tokens[i]);
   }

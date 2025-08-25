@@ -11,17 +11,20 @@
 
 char **parseInput(char *input);
 void freeTokens(char **tokens);
-int shellBuilts(char **args, char **env, char *initialDirectory);
+void freeEnv(char **env);
+int shellBuilts(char **args, char ***env, char *initialDirectory);
 char *getFullPathOfWhich(char *command, char **env);
+char **cloneEnv(char **env);
 
 // Helpers
 int myStrcmp(const char *a, const char *b);
-char* myGetenv(const char *name, char **env);
+char *myGetenv(const char *name, char **env);
 int myStrlen(const char *str);
 int myStrnicmp(const char *a, const char *b, int n);
 char *myStrdup(const char *str);
 void myStrcpy(char *str1, const char *str2);
 char *myStrchr(const char *input, const char delimiter);
+char *parseString(char *str, char **env);
 
 // Built in function implementation
 int commandCd(char **args, char *initialDirectory);
@@ -30,5 +33,5 @@ int commandEcho(char **args, char **env);
 int commandEnv(char **env);
 int commandWhich(char **args, char **env);
 
-char **commandSetenv(char **args, char **env);
-char **commandUnsetenv(char **args, char **env);
+char **commandExport(char **args, char **env);
+char **commandUnset(char **args, char **env);
