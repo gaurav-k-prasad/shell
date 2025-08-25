@@ -103,11 +103,11 @@ int shellBuilts(char **args, char **env, char *initialDirectory)
   }
   else if (myStrcmp(args[0], "env") == 0)
   {
-    commandEnv(env);
+    return commandEnv(env);
   }
   else if (myStrcmp(args[0], "which") == 0)
   {
-    commandWhich(args, env);
+    return commandWhich(args, env);
   }
   else if (myStrcmp(args[0], "exit") == 0 || myStrcmp(args[0], "quit") == 0)
   {
@@ -115,7 +115,6 @@ int shellBuilts(char **args, char **env, char *initialDirectory)
   }
   else
   {
-    puts("Command not found");
-    // TODO executor();
+    return executor(args, env);
   }
 }

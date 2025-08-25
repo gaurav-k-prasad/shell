@@ -1,13 +1,5 @@
 #include "myshell.h"
 
-#ifdef _WIN32
-const char sep[] = ";";
-const char pathSeparator[] = "\\";
-#else
-const char sep[] = ":";
-const char pathSeparator[] = "/";
-#endif
-
 /*
  * `cd [path]`
  * `cd ..`
@@ -125,7 +117,7 @@ int commandWhich(char **args, char **env)
 {
   if (args[1] == NULL)
   {
-    fprintf(stderr, "which: expected a filename: which [file]");
+    fprintf(stderr, "which: expected a filename: which [file]\n");
     return 1;
   }
 
@@ -166,7 +158,7 @@ char *getFullPathOfWhich(char *command, char **env)
     return NULL;
   }
 
-  char *tok = strtok(pathEnv, sep);
+  char *tok = strtok(pathEnv, SEP);
 
   while (tok)
   {
@@ -179,8 +171,8 @@ char *getFullPathOfWhich(char *command, char **env)
       exit(EXIT_FAILURE);
     }
 
-    if (tok[len - 1] != *pathSeparator)
-      snprintf(buff, len, "%s%s%s", tok, pathSeparator, command);
+    if (tok[len - 1] != *PATH_SEPARATOR)
+      snprintf(buff, len, "%s%s%s", tok, PATH_SEPARATOR, command);
     else
       snprintf(buff, len, "%s%s", tok, command);
 
@@ -191,7 +183,7 @@ char *getFullPathOfWhich(char *command, char **env)
     }
 
     free(buff);
-    tok = strtok(NULL, sep);
+    tok = strtok(NULL, SEP);
   }
 
   free(pathEnv);
