@@ -8,6 +8,7 @@
     "string.h": "c",
     "io.h": "c",
     "stdbool.h": "c",
-    "dirent.h": "c"
+    "dirent.h": "c",
+    "signal.h": "c"
   }
 }

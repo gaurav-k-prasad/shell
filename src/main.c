@@ -1,7 +1,6 @@
 #include "../headers/myshell.h"
 
 void shellLoop(char **env);
-int shellBuilts(char **args, char **env, char *initialDirectory);
 
 int main(int argc, char const *argv[], char *env[])
 {
@@ -16,7 +15,8 @@ void shellLoop(char **envp)
 {
   char *input = NULL;
   size_t input_size = 0;
-  char **args;
+  // char **args;
+  char ***args;
   char *initialDirectory = getcwd(NULL, 0);
   char buff[1024];
   char **env = cloneEnv(envp);
@@ -41,23 +41,25 @@ void shellLoop(char **envp)
       perror("End fo file detected");
       break;
     }
+    input[strcspn(input, "\n")] = '\0';
 
-    args = parseInput(input);
+    args = extendedParser(input);
     if (!args)
     {
       fprintf(stderr, "parsing failed");
       continue;
     }
 
-    if (args[0]) // if no arguments
+    char **firstCommand = args[0];
+    if (firstCommand) // if no arguments
     {
-      if (myStrcmp(args[0], "export") == 0)
+      if (myStrcmp(firstCommand[0], "export") == 0)
       {
-        env = commandExport(args, env);
+        env = commandExport(firstCommand, env);
       }
-      else if (myStrcmp(args[0], "unset") == 0)
+      else if (myStrcmp(firstCommand[0], "unset") == 0)
       {
-        env = commandUnset(args, env);
+        env = commandUnset(firstCommand, env);
       }
       else
       {
@@ -87,29 +89,30 @@ void shellLoop(char **envp)
  * ls
  * cat ...
  */
-int shellBuilts(char **args, char **env, char *initialDirectory)
+int shellBuilts(char ***args, char **env, char *initialDirectory)
 {
-  if (myStrcmp(args[0], "cd") == 0)
+  char **firstCommand = args[0];
+  if (myStrcmp(firstCommand[0], "cd") == 0)
   {
-    return commandCd(args, initialDirectory);
+    return commandCd(firstCommand, initialDirectory);
   }
-  else if (myStrcmp(args[0], "pwd") == 0)
+  else if (myStrcmp(firstCommand[0], "pwd") == 0)
   {
     return commandPwd();
   }
-  else if (myStrcmp(args[0], "echo") == 0)
+  else if (myStrcmp(firstCommand[0], "echo") == 0)
   {
-    return commandEcho(args, env);
+    return commandEcho(firstCommand, env);
   }
-  else if (myStrcmp(args[0], "env") == 0)
+  else if (myStrcmp(firstCommand[0], "env") == 0)
   {
     return commandEnv(env);
   }
-  else if (myStrcmp(args[0], "which") == 0)
+  else if (myStrcmp(firstCommand[0], "which") == 0)
   {
-    return commandWhich(args, env);
+    return commandWhich(firstCommand, env);
   }
-  else if (myStrcmp(args[0], "exit") == 0 || myStrcmp(args[0], "quit") == 0)
+  else if (myStrcmp(firstCommand[0], "exit") == 0 || myStrcmp(firstCommand[0], "quit") == 0)
   {
     exit(EXIT_SUCCESS);
   }

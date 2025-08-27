@@ -48,13 +48,13 @@ int commandEcho(char **args, char **env)
 {
   int printNewLine = true;
   int start = 1;
-  if (args[1] && myStrcmp(args[1], "-n") == 0)
+  if (args[1] && myStrcmp(args[1], "-n") == 0) // handling -n flag for no new line character
   {
     start = 2;
     printNewLine = false;
   }
 
-  for (int i = start; args[i] != NULL; i++)
+  for (int i = start; args[i]; i++) // parse all the arguments for echo
   {
     char *res = parseString(args[i], env);
     if (res == NULL)
@@ -99,10 +99,10 @@ int commandEnv(char **env)
       fprintf(stderr, "malloc failed\n");
       exit(EXIT_FAILURE);
     }
-    strncpy(buff, env[i], count);
+    strncpy(buff, env[i], count); // get value of the enviornment variable to print
     buff[count] = '\0';
 
-    fprintf(stdout, "%-40s | %s\n", buff, env[i] + count + 1);
+    fprintf(stdout, "%-40s | %s\n", buff, env[i] + count + 1); // formatted print key and value
     free(buff);
   }
 
@@ -111,7 +111,7 @@ int commandEnv(char **env)
 
 /*
  * In your path variables finds the executable full path
- * `>> which [arg]`
+ * `which [arg]`
  */
 int commandWhich(char **args, char **env)
 {
@@ -121,6 +121,7 @@ int commandWhich(char **args, char **env)
     return 1;
   }
 
+  // if one of these then it's a builtin command
   const char *builtIns[] = {"cd", "pwd", "echo", "env", "unsetenv", "setenv", "exit", "which"};
 
   for (int i = 0; i < sizeof(builtIns) / sizeof(char *); i++)
@@ -132,6 +133,7 @@ int commandWhich(char **args, char **env)
     }
   }
 
+  // look through everywhere in env PATH where the command is
   char *fullpath = getFullPathOfWhich(args[1], env);
   if (fullpath == NULL)
   {
@@ -151,13 +153,14 @@ int commandWhich(char **args, char **env)
  */
 char *getFullPathOfWhich(char *command, char **env)
 {
-  // Locate the path
+  // Locate the path enviornment variable
   char *pathEnv = myGetenv("PATH", env);
   if (!pathEnv)
   {
     return NULL;
   }
 
+  // split the PATH by separator
   char *tok = strtok(pathEnv, SEP);
 
   while (tok)
@@ -176,6 +179,7 @@ char *getFullPathOfWhich(char *command, char **env)
     else
       snprintf(buff, len, "%s%s", tok, command);
 
+    // find the binary file if it exists or not in the given path
     if (access(buff, X_OK) == 0)
     {
       free(pathEnv);
@@ -265,7 +269,7 @@ char **commandExport(char **args, char **env)
     {
       len = myStrlen(env[i]);
       curr = (char *)malloc(sizeof(char) * (len + 1));
-      if (!curr)
+      if (!curr) // malloc failed and delete everything
       {
         fprintf(stderr, "malloc failed\n");
         free(varname);
@@ -304,11 +308,11 @@ char **commandExport(char **args, char **env)
 }
 
 /**
- * @brief sets the enviornment variable 
- * 
+ * @brief sets the enviornment variable
+ *
  * @param args arguments passed to the command
  * @param env enviornment variables
- * @return char** 
+ * @return char**
  */
 char **commandUnset(char **args, char **env)
 {
