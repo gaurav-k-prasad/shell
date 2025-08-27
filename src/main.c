@@ -26,13 +26,13 @@ void shellLoop(char **envp)
     fprintf(stderr, "enviornment duplication failed");
     exit(EXIT_FAILURE);
   }
-  char *userName = myGetenv("USERNAME", env);
+  char *userName = myGetenv("LOGNAME", env);
 
   while (1)
   {
     getcwd(buff, sizeof(buff));
     if (userName)
-      fprintf(stdout, "\033[32m@%s [%s]> \033[0m", userName, buff); // ANSI format coloring
+      fprintf(stdout, "\033[36m@%s\033[0m \033[32m[%s]> \033[0m", userName, buff); // ANSI format coloring
     else
       fprintf(stdout, "\033[32m[%s]> \033[0m", buff); // ANSI format coloring
 
