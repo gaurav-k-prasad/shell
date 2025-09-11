@@ -9,6 +9,7 @@
     "io.h": "c",
     "stdbool.h": "c",
     "dirent.h": "c",
-    "signal.h": "c"
+    "signal.h": "c",
+    "types.h": "c"
   }
 }
