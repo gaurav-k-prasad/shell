@@ -43,6 +43,10 @@ void shellLoop(char **envp)
     }
     input[strcspn(input, "\n")] = '\0';
 
+    Token **allTokens = getTokens(input, env);
+    splitCommands(allTokens);
+
+    continue;
     args = extendedParser(input);
     if (!args)
     {

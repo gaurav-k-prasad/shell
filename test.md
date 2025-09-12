@@ -18,6 +18,7 @@
 14. $VALID$INVALID$VALID
 15. above 4 and similar with "" and ''
 16. $PATH\ $PATH
+17. cat < input | grep a | grep b > write && echo "hello world" ; echo "bruh done\n"
 
 ---
 

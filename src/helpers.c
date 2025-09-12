@@ -89,7 +89,8 @@ char *myStrdup(const char *str)
     return NULL;
   size_t _strlen = myStrlen(str);
   char *dup = (char *)malloc(sizeof(char) * (_strlen + 1)); // caller has to free
-  if (!dup) {
+  if (!dup)
+  {
     fprintf(stderr, "malloc failed\n");
     exit(EXIT_FAILURE);
   }
@@ -110,4 +111,92 @@ char *myStrchr(const char *str, const char delimiter)
   }
 
   return NULL;
+}
+
+bool isSemicolon(Token *input)
+{
+  return (input->isOperator && strcmp(input->token, ";") == 0);
+}
+
+bool isLogicalOp(Token *input)
+{
+  return (input->isOperator && (strcmp(input->token, "||") == 0 || strcmp("&&", input->token) == 0));
+}
+
+bool isPipe(Token *input)
+{
+  return (input->isOperator && strcmp(input->token, "|") == 0);
+}
+
+bool isLt(Token *input)
+{
+  return (input->isOperator && strcmp(input->token, "<") == 0);
+}
+
+bool isGt(Token *input)
+{
+  return (input->isOperator && strcmp(input->token, ">") == 0);
+}
+
+PipelineComponent *createPipelineComponent()
+{
+  PipelineComponent *pc = (PipelineComponent *)malloc(sizeof(PipelineComponent));
+  if (!pc)
+  {
+    return NULL;
+  }
+
+  Vector_Token *vt = (Vector_Token *)malloc(sizeof(Vector_Token));
+  init_Token(vt, 4);
+
+  pc->isGt = 0;
+  pc->isLt = 0;
+  pc->tokens = vt; // +1 for NULL
+
+  return pc;
+}
+
+Pipeline *createPipeline()
+{
+  Pipeline *p = (Pipeline *)malloc(sizeof(Pipeline));
+  if (!p)
+  {
+    return NULL;
+  }
+
+  Vector_PipelineComponent *vpc = (Vector_PipelineComponent *)malloc(sizeof(Vector_PipelineComponent));
+  init_PipelineComponent(vpc, 4);
+
+  p->components = vpc;
+  p->separator = -1; // Pipeline separator not defined yet
+
+  return p;
+}
+
+Command *createCommand()
+{
+  Command *fc = (Command *)malloc(sizeof(Command));
+  if (!fc)
+  {
+    return NULL;
+  }
+
+  Vector_Pipeline *vp = (Vector_Pipeline *)malloc(sizeof(Vector_Pipeline));
+  init_Pipeline(vp, 4);
+  fc->pipelines = vp;
+  return fc;
+}
+
+Commands *createCommands()
+{
+  Commands *cmds = (Commands *)malloc(sizeof(Commands));
+  if (!cmds)
+  {
+    return NULL;
+  }
+
+  Vector_Command *vc = (Vector_Command *)malloc(sizeof(Vector_Command));
+  init_Command(vc, 4);
+  cmds->commands = vc;
+  return cmds;
 }
