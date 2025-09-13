@@ -152,19 +152,23 @@ bool isBuiltin(char *command)
   return false;
 }
 
-void handleBuiltin(char **args, char ***env, char *initialDirectory)
+int handleBuiltin(char **args, char ***env, char *initialDirectory)
 {
   if (myStrcmp(args[0], "export") == 0)
   {
     *env = commandExport(args, *env);
+    if (*env == NULL)
+      return 1;
   }
   else if (myStrcmp(args[0], "unset") == 0)
   {
     *env = commandUnset(args, *env);
+    if (*env == NULL)
+      return 1;
   }
   else if (myStrcmp(args[0], "cd") == 0)
   {
-    commandCd(args, initialDirectory);
+    return commandCd(args, initialDirectory);
   }
   else if (myStrcmp(args[0], "exit") == 0 || myStrcmp(args[0], "quit") == 0)
   {
@@ -185,23 +189,23 @@ bool isMyImplementedBulitin(char *command)
   return false;
 }
 
-void handleMyImplementedBulitin(char **args, char ***env, char *initialDirectory)
+int handleMyImplementedBulitin(char **args, char ***env, char *initialDirectory)
 {
   if (myStrcmp(args[0], "echo") == 0)
   {
-    commandEcho(args, *env);
+    return commandEcho(args, *env);
   }
   else if (myStrcmp(args[0], "pwd") == 0)
   {
-    commandPwd();
+    return commandPwd();
   }
   else if (myStrcmp(args[0], "env") == 0)
   {
-    commandEnv(*env);
+    return commandEnv(*env);
   }
   else if (myStrcmp(args[0], "which") == 0)
   {
-    commandWhich(args, *env);
+    return commandWhich(args, *env);
   }
 }
 

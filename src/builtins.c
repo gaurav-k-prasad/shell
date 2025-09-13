@@ -14,12 +14,13 @@ int commandCd(char **args, char *initialDirectory)
   {
     fprintf(stderr, "expected an argument: cd [dir]\n");
   }
-  else if (chdir(args[1]) != 0)
+  int status = chdir(args[1]) != 0;
+  if (status != 0)
   {
     perror("cd");
   }
 
-  return 0;
+  return status;
 }
 
 /*
@@ -36,6 +37,7 @@ int commandPwd()
   else
   {
     perror("cwd");
+    return 1;
   }
   return 0;
 }
@@ -74,7 +76,7 @@ int commandEnv(char **env)
   fprintf(stdout, "%-40s | %s\n", "Enviornment Variable", "Value");
   fprintf(stdout, "-------------------------------------------------------------------------------------------\n");
   if (env == NULL)
-    return 0;
+    return 1;
 
   for (int i = 0; env[i]; i++)
   {
@@ -117,7 +119,7 @@ int commandWhich(char **args, char **env)
   // if one of these then it's a builtin command
   const char *builtIns[] = {"cd", "pwd", "echo", "env", "unsetenv", "setenv", "exit", "which"};
 
-  for (int i = 0; i < sizeof(builtIns) / sizeof(char *); i++)
+  for (int i = 0; i < sizeof(builtIns) / sizeof(builtIns[0]); i++)
   {
     if (myStrcmp(builtIns[i], args[1]) == 0)
     {
@@ -131,13 +133,11 @@ int commandWhich(char **args, char **env)
   if (fullpath == NULL)
   {
     fprintf(stdout, "not found\n");
-  }
-  else
-  {
-    fprintf(stdout, "Found: %s\n", fullpath);
-    free(fullpath);
+    return 1;
   }
 
+  fprintf(stdout, "Found: %s\n", fullpath);
+  free(fullpath);
   return 0;
 }
 

@@ -43,8 +43,8 @@ char **cloneEnv(char **env);                                          // clones 
 Commands *splitCommands(Token **allTokens);                           // splits the given commands as input into proper format
 bool isBuiltin(char *command);                                        // find if it's a builtin command
 bool isMyImplementedBulitin(char *command);                           // find if it's my implemented builtin command
-void handleBuiltin(char **args, char ***env, char *initialDirectory); // if builtin then handle the builtin
-void handleMyImplementedBulitin(char **args, char ***env, char *initialDirectory);
+int handleBuiltin(char **args, char ***env, char *initialDirectory); // if builtin then handle the builtin
+int handleMyImplementedBulitin(char **args, char ***env, char *initialDirectory);
 
 // Executor
 // @deprecated

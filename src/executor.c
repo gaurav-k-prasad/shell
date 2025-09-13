@@ -101,13 +101,25 @@ int executor(char ***commandArgs, char **env)
 
 int executeCommand(Command *command, char ***env, char *initialDirectory)
 {
+  int laststatus = 0;
   for (int i = 0; i < command->pipelines->size; i++)
   {
-    int status = executePipeline(command->pipelines->data[i], env, initialDirectory);
-
-    // todo: handle && ||
+    Pipeline *pipeline = command->pipelines->data[i];
+    int status = executePipeline(pipeline, env, initialDirectory);
+    laststatus = status;
+    if (pipeline->separator == AND && status != 0)
+    {
+      break;
+    }
+    else if (pipeline->separator == OR)
+    {
+      if (status == 0)
+      {
+        break;
+      }
+    }
   }
-  return 0;
+  return laststatus;
 }
 
 int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory)
@@ -148,12 +160,26 @@ int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory)
   // close parent pipes
   closePipes(fds, pipeCount);
 
+  int pipelineStatus = 0;
   for (int i = 0; i < pipelineComponentCount; i++)
   {
-    waitpid(pids[i], NULL, 0);
+    int processStatus = 0;
+    waitpid(pids[i], &processStatus, 0);
+
+    if (i == pipelineComponentCount - 1)
+    {
+      if (WIFEXITED(processStatus))
+      {
+        pipelineStatus = WEXITSTATUS(processStatus); // 0 = success
+      }
+      else
+      {
+        pipelineStatus = 1;
+      }
+    }
   }
 
-  return 0;
+  return pipelineStatus;
 }
 
 int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], int pipeCount, int i, int pids[], char *initialDirectory)
@@ -172,7 +198,7 @@ int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], i
   if (infile)
     infilefd = open(infile, O_RDONLY);
   if (outfile)
-    outfilefd = open(outfile, O_RDWR | O_CREAT);
+    outfilefd = open(outfile, O_WRONLY | O_CREAT | O_TRUNC, 0666);
 
   printf("commandEnd: %d - infile: %s, outfile: %s\n========\n", commandEnd, infile, outfile);
 
@@ -184,8 +210,7 @@ int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], i
   // if it's the only builtin then execute it. no need to fork
   if (i == 0 && isBuiltin(args[0]))
   {
-    handleBuiltin(args, env, initialDirectory);
-    return 0;
+    return handleBuiltin(args, env, initialDirectory);
   }
 
   int pid = fork();
@@ -223,15 +248,15 @@ int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], i
     // handle builtins
     if (isBuiltin(args[0]))
     {
-      handleBuiltin(args, env, initialDirectory);
-      exit(0);
+      int status = handleBuiltin(args, env, initialDirectory);
+      exit(status);
     }
 
     // handle my implemented builtins
     if (isMyImplementedBulitin(args[0]))
     {
-      handleMyImplementedBulitin(args, env, initialDirectory);
-      exit(0);
+      int status = handleMyImplementedBulitin(args, env, initialDirectory);
+      exit(status);
     }
 
     // if not builtin

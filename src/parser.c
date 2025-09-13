@@ -144,7 +144,7 @@ Token **getTokens(char *input, char **env)
     int envidx = 0;
     if (!input[i] && (isDoubleQuotes == 1 || isSingleQuotes == 1))
     {
-      fprintf(stderr, "wrong syntax expected a closing quote\n");
+      fprintf(stderr, "Error: expected a closing quote\n");
       exit(EXIT_FAILURE);
     }
 
