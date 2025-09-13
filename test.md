@@ -23,5 +23,3 @@
 ---
 
 ## Todos
-
-1. TODO: consider closing the '' "" too

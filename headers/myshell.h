@@ -8,6 +8,8 @@
 #include <ctype.h>
 #include <sys/types.h>
 #include <signal.h>
+#include <limits.h>
+#include <fcntl.h>
 
 // Structures
 #include "../structs/parser.h"
@@ -28,20 +30,30 @@
 
 #define MAX_INPUT_BUF 1024
 
+#define MAX(A, B) (A > B) ? A : B
+#define MIN(A, B) (A < B) ? A : B
+
 // Main helpers
 Token **getTokens(char *input, char **env);
-char **parseInput(char *input);
-char ***extendedParser(char *input);
-void freeTokens(char ***tokens);                                   // clean tokens from memory
-void freeEnv(char **env);                                          // free enviornment variable string
-int shellBuilts(char ***args, char **env, char *initialDirectory); // handles shell builtin commands
-char *getFullPathOfWhich(char *command, char **env);               // get's full path of a command eg ls -> /urs/bin/ls
-char **cloneEnv(char **env);                                       // clones the initial enviornment
-char *parseString(char *str, char **env);                          // expands the given string for echo. eg $PATH:/usr/bin/gcc
-void splitCommands(Token **allTokens);                             // splits the given commands as input into proper format
+void freeEnv(char **env); // free enviornment variable string
+// @deprecated
+int shellBuilts(char ***args, char **env, char *initialDirectory);    // handles shell builtin commands
+char *getFullPathOfWhich(char *command, char **env);                  // get's full path of a command eg ls -> /urs/bin/ls
+char **cloneEnv(char **env);                                          // clones the initial enviornment
+Commands *splitCommands(Token **allTokens);                           // splits the given commands as input into proper format
+bool isBuiltin(char *command);                                        // find if it's a builtin command
+bool isMyImplementedBulitin(char *command);                           // find if it's my implemented builtin command
+void handleBuiltin(char **args, char ***env, char *initialDirectory); // if builtin then handle the builtin
+void handleMyImplementedBulitin(char **args, char ***env, char *initialDirectory);
 
 // Executor
+// @deprecated
 int executor(char ***args, char **env); // executes the binary files
+int executeCommand(Command *command, char ***env, char *initialDirectory);
+int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory);
+int executePipelineComponent(
+    PipelineComponent *pc, char ***env, int fds[][2],
+    int pipeCount, int i, int pids[], char *initialDirectory);
 
 // Helpers
 int myStrcmp(const char *a, const char *b);              // strcmp
@@ -60,6 +72,11 @@ PipelineComponent *createPipelineComponent();            // mallocs the required
 Pipeline *createPipeline();                              // mallocs the required item
 Command *createCommand();                                // mallocs the required item
 Commands *createCommands();                              // mallocs the required item
+void closePipes(int fds[][2], int n);                    // close pipes
+void findInOutFileAndCommandEnd(
+    PipelineComponent *pc, int tokensLen, Token **tokens,
+    char **infile, char **outfile, int *commandEnd); // finds if there are files in the given pipeline component and gives the command end in args
+bool isDelimiter(Token *token);
 
 // Built in function implementation
 int commandCd(char **args, char *initialDirectory); // cd command
@@ -67,8 +84,7 @@ int commandPwd();                                   // pwd command
 int commandEcho(char **args, char **env);           // echo command
 int commandEnv(char **envp);                        // env command
 int commandWhich(char **args, char **env);          // which command
-
-char **commandExport(char **args, char **env); // export command for env
-char **commandUnset(char **args, char **env);  // unset command for env
+char **commandExport(char **args, char **env);      // export command for env
+char **commandUnset(char **args, char **env);       // unset command for env
 
 #endif

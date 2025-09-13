@@ -36,3 +36,10 @@
 ## 7. Error Handling
 
 - Handle invalid commands, syntax errors, and runtime errors
+
+- Not freeing memory
+- signal processing ^C
+- Error handling
+- remove deprecated functions and their dependencies fix
+  1. int shellBuilts(char ***args, char **env, char *initialDirectory);
+  2. int executor(char ***args, char **env);

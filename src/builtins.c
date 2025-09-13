@@ -56,14 +56,7 @@ int commandEcho(char **args, char **env)
 
   for (int i = start; args[i]; i++) // parse all the arguments for echo
   {
-    char *res = parseString(args[i], env);
-    if (res == NULL)
-    {
-      fprintf(stderr, "string parsing failed\n");
-      return 1;
-    }
-    fprintf(stdout, "%s ", res);
-    free(res);
+    fprintf(stdout, "%s ", args[i]);
   }
 
   if (printNewLine)
@@ -247,16 +240,6 @@ char **commandExport(char **args, char **env)
   varname[varnamelen] = '\0';
   str++; // skip '='
 
-  // get the value by expanding the value string eg $PATH => /usr/bin:/usr/local/bin...
-  char *varvalue = parseString(str, env);
-  if (varvalue == NULL)
-  {
-    fprintf(stderr, "string parsing failed\n");
-    free(varname);
-    free(newEnv);
-    return env;
-  }
-
   int k = 0; // pointer for newEnv variable
   size_t len;
   char *curr;
@@ -273,7 +256,6 @@ char **commandExport(char **args, char **env)
       {
         fprintf(stderr, "malloc failed\n");
         free(varname);
-        free(varvalue);
         freeEnv(newEnv);
         exit(EXIT_FAILURE);
       }
@@ -284,24 +266,22 @@ char **commandExport(char **args, char **env)
   }
 
   // copy the new enviornment variable
-  len = varnamelen + 1 + strlen(varvalue);         // 1 for '='
+  len = myStrlen(args[1]);                         // 1 for '='
   curr = (char *)malloc(sizeof(char) * (len + 1)); // 1 for \0
   if (!curr)
   {
     fprintf(stderr, "malloc failed\n");
     free(varname);
-    free(varvalue);
     freeEnv(env);
     exit(EXIT_FAILURE);
   }
 
-  snprintf(curr, len + 1, "%s=%s", varname, varvalue);
+  snprintf(curr, len + 1, "%s", args[1]);
   newEnv[k++] = curr;
   newEnv[k] = NULL;
 
   // free the memory
   free(varname);
-  free(varvalue);
   freeEnv(env);
 
   return newEnv;

@@ -138,6 +138,113 @@ bool isGt(Token *input)
   return (input->isOperator && strcmp(input->token, ">") == 0);
 }
 
+bool isBuiltin(char *command)
+{
+  if (myStrcmp(command, "export") == 0 ||
+      myStrcmp(command, "unset") == 0 ||
+      myStrcmp(command, "cd") == 0 ||
+      myStrcmp(command, "exit") == 0 ||
+      myStrcmp(command, "quit") == 0)
+  {
+    return true;
+  }
+
+  return false;
+}
+
+void handleBuiltin(char **args, char ***env, char *initialDirectory)
+{
+  if (myStrcmp(args[0], "export") == 0)
+  {
+    *env = commandExport(args, *env);
+  }
+  else if (myStrcmp(args[0], "unset") == 0)
+  {
+    *env = commandUnset(args, *env);
+  }
+  else if (myStrcmp(args[0], "cd") == 0)
+  {
+    commandCd(args, initialDirectory);
+  }
+  else if (myStrcmp(args[0], "exit") == 0 || myStrcmp(args[0], "quit") == 0)
+  {
+    exit(EXIT_SUCCESS);
+  }
+}
+
+bool isMyImplementedBulitin(char *command)
+{
+  if (myStrcmp(command, "echo") == 0 ||
+      myStrcmp(command, "pwd") == 0 ||
+      myStrcmp(command, "env") == 0 ||
+      myStrcmp(command, "which") == 0)
+  {
+    return true;
+  }
+
+  return false;
+}
+
+void handleMyImplementedBulitin(char **args, char ***env, char *initialDirectory)
+{
+  if (myStrcmp(args[0], "echo") == 0)
+  {
+    commandEcho(args, *env);
+  }
+  else if (myStrcmp(args[0], "pwd") == 0)
+  {
+    commandPwd();
+  }
+  else if (myStrcmp(args[0], "env") == 0)
+  {
+    commandEnv(*env);
+  }
+  else if (myStrcmp(args[0], "which") == 0)
+  {
+    commandWhich(args, *env);
+  }
+}
+
+void closePipes(int fds[][2], int n)
+{
+  for (int i = 0; i < n; i++)
+  {
+    close(fds[i][0]);
+    close(fds[i][1]);
+  }
+}
+
+void findInOutFileAndCommandEnd(PipelineComponent *pc, int tokensLen, Token **tokens, char **infile, char **outfile, int *commandEnd)
+{
+  if (pc->isLt)
+  {
+    int i = 0;
+    while (i < tokensLen)
+    {
+      if (isLt(tokens[i]))
+      {
+        *infile = tokens[i + 1]->token;
+        *commandEnd = MIN(*commandEnd, i);
+      }
+      i++;
+    }
+  }
+
+  if (pc->isGt)
+  {
+    int i = 0;
+    while (i < tokensLen)
+    {
+      if (isGt(tokens[i]))
+      {
+        *outfile = tokens[i + 1]->token;
+        *commandEnd = MIN(*commandEnd, i);
+      }
+      i++;
+    }
+  }
+}
+
 PipelineComponent *createPipelineComponent()
 {
   PipelineComponent *pc = (PipelineComponent *)malloc(sizeof(PipelineComponent));
@@ -199,4 +306,9 @@ Commands *createCommands()
   init_Command(vc, 4);
   cmds->commands = vc;
   return cmds;
+}
+
+bool isDelimiter(Token *token)
+{
+  return (isPipe(token) || isLogicalOp(token) || isSemicolon(token) || (isLt(token) && token->isOperator) || (isGt(token) && token->isOperator));
 }

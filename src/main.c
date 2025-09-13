@@ -16,7 +16,7 @@ void shellLoop(char **envp)
   char *input = NULL;
   size_t input_size = 0;
   // char **args;
-  char ***args;
+  // char ***args;
   char *initialDirectory = getcwd(NULL, 0);
   char buff[1024];
   char **env = cloneEnv(envp);
@@ -44,8 +44,9 @@ void shellLoop(char **envp)
     input[strcspn(input, "\n")] = '\0';
 
     Token **allTokens = getTokens(input, env);
-    splitCommands(allTokens);
+    Commands *allCommands = splitCommands(allTokens);
 
+    /*
     continue;
     args = extendedParser(input);
     if (!args)
@@ -72,6 +73,15 @@ void shellLoop(char **envp)
     }
 
     freeTokens(args);
+    */
+
+    int i = 0;
+    for (int i = 0; i < allCommands->commands->size; i++)
+    {
+      Command *command = allCommands->commands->data[i];
+      int status = executeCommand(command, &env, initialDirectory);
+      printf("---\nStatus: %d\n---\n", status);
+    }
   }
 
   free(userName);

@@ -3,36 +3,37 @@
 
 #define MAX_TOKENS 1024
 
-#define DEFINE_VECTOR(type)                                              \
-  typedef struct                                                         \
-  {                                                                      \
-    type **data;                                                         \
-    size_t size;                                                         \
-    size_t capacity;                                                     \
-  } Vector_##type;                                                       \
-                                                                         \
-  static inline void init_##type(Vector_##type *v, size_t cap)           \
-  {                                                                      \
-    v->data = (type **)malloc(cap * sizeof(type *));                     \
-    v->size = 0;                                                         \
-    v->capacity = cap;                                                   \
-  }                                                                      \
-                                                                         \
-  static inline void push_##type(Vector_##type *v, type *val)            \
-  {                                                                      \
-    if (v->size == v->capacity)                                          \
-    {                                                                    \
-      v->capacity *= 2;                                                  \
-      v->data = (type **)realloc(v->data, v->capacity * sizeof(type *)); \
-    }                                                                    \
-    v->data[v->size++] = val;                                            \
-  }                                                                      \
-                                                                         \
-  static inline void free_##type(Vector_##type *v)                       \
-  {                                                                      \
-    free(v->data);                                                       \
-    v->data = NULL;                                                      \
-    v->size = v->capacity = 0;                                           \
+#define DEFINE_VECTOR(type)                                                    \
+  typedef struct                                                               \
+  {                                                                            \
+    type **data;                                                               \
+    size_t size;                                                               \
+    size_t capacity;                                                           \
+  } Vector_##type;                                                             \
+                                                                               \
+  static inline void init_##type(Vector_##type *v, size_t cap)                 \
+  {                                                                            \
+    v->data = (type **)malloc((cap + 1) * sizeof(type *));                     \
+    v->size = 0;                                                               \
+    v->capacity = cap;                                                         \
+  }                                                                            \
+                                                                               \
+  static inline void push_##type(Vector_##type *v, type *val)                  \
+  {                                                                            \
+    if (v->size == v->capacity)                                                \
+    {                                                                          \
+      v->capacity *= 2;                                                        \
+      v->data = (type **)realloc(v->data, (v->capacity + 1) * sizeof(type *)); \
+    }                                                                          \
+    v->data[v->size++] = val;                                                  \
+    v->data[v->size] = NULL;                                                   \
+  }                                                                            \
+                                                                               \
+  static inline void free_##type(Vector_##type *v)                             \
+  {                                                                            \
+    free(v->data);                                                             \
+    v->data = NULL;                                                            \
+    v->size = v->capacity = 0;                                                 \
   }
 
 enum Seperator
