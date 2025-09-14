@@ -43,95 +43,32 @@ void shellLoop(char **envp)
     }
     input[strcspn(input, "\n")] = '\0';
 
-    Token **allTokens = getTokens(input, env);
-    Commands *allCommands = splitCommands(allTokens);
-
-    /*
-    continue;
-    args = extendedParser(input);
-    if (!args)
+    VectorToken *tokenVec = getTokens(input, env);
+    if (tokenVec == NULL)
     {
-      fprintf(stderr, "parsing failed");
+      fprintf(stdout, "Lexical phase failed");
       continue;
     }
 
-    char **firstCommand = args[0];
-    if (firstCommand) // if no arguments
+    Commands *allCommands = splitCommands(tokenVec);
+    if (allCommands == NULL)
     {
-      if (myStrcmp(firstCommand[0], "export") == 0)
-      {
-        env = commandExport(firstCommand, env);
-      }
-      else if (myStrcmp(firstCommand[0], "unset") == 0)
-      {
-        env = commandUnset(firstCommand, env);
-      }
-      else
-      {
-        shellBuilts(args, env, initialDirectory);
-      }
+      freeVecToken(tokenVec);
+      fprintf(stdout, "Parsing failed");
+      continue;
     }
 
-    freeTokens(args);
-    */
+    freeVecToken(tokenVec);
 
-    int i = 0;
     for (int i = 0; i < allCommands->commands->size; i++)
     {
       Command *command = allCommands->commands->data[i];
       int status = executeCommand(command, &env, initialDirectory);
       printf("---\nStatus: %d\n---\n", status);
     }
+    freeCommands(allCommands);
   }
 
   free(userName);
   freeEnv(env);
-}
-
-/*
- $ builtins -
- *  1. cd
- *  2. pwd
- *  3. echo
- *  4. env
- *  5. export
- *  6. unset
- *  7. which
- *  8. exit
-
- $ executor binary -
- * ls
- * cat ...
- */
-int shellBuilts(char ***args, char **env, char *initialDirectory)
-{
-  char **firstCommand = args[0];
-  if (myStrcmp(firstCommand[0], "cd") == 0)
-  {
-    return commandCd(firstCommand, initialDirectory);
-  }
-  else if (myStrcmp(firstCommand[0], "pwd") == 0)
-  {
-    return commandPwd();
-  }
-  else if (myStrcmp(firstCommand[0], "echo") == 0)
-  {
-    return commandEcho(firstCommand, env);
-  }
-  else if (myStrcmp(firstCommand[0], "env") == 0)
-  {
-    return commandEnv(env);
-  }
-  else if (myStrcmp(firstCommand[0], "which") == 0)
-  {
-    return commandWhich(firstCommand, env);
-  }
-  else if (myStrcmp(firstCommand[0], "exit") == 0 || myStrcmp(firstCommand[0], "quit") == 0)
-  {
-    exit(EXIT_SUCCESS);
-  }
-  else
-  {
-    return executor(args, env);
-  }
 }

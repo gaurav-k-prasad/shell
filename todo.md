@@ -37,9 +37,7 @@
 
 - Handle invalid commands, syntax errors, and runtime errors
 
-- Not freeing memory
+- realloc and malloc in macro malloc error handling
+- returned errors codes / NULL handling
+- Error handling: return status from pipelineComponent executor
 - signal processing ^C
-- Error handling
-- remove deprecated functions and their dependencies fix
-  1. int shellBuilts(char ***args, char **env, char *initialDirectory);
-  2. int executor(char ***args, char **env);

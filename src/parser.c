@@ -1,13 +1,15 @@
 #include "../headers/myshell.h"
 
-Token **getTokens(char *input, char **env)
+VectorToken *getTokens(char *input, char **env)
 {
   int i = 0;
-  Token **allTokens = (Token **)malloc(sizeof(Token *) * MAX_TOKENS);
-  if (!allTokens)
+  VectorToken *tokenVec = (VectorToken *)malloc(sizeof(VectorToken));
+  initVecToken(tokenVec, 16);
+
+  if (!tokenVec)
   {
-    fprintf(stderr, "malloc failed");
-    exit(EXIT_FAILURE);
+    perror("malloc");
+    return NULL;
   }
   int tokenCount = 0;
 
@@ -118,8 +120,11 @@ Token **getTokens(char *input, char **env)
       {
         if (!input[i + 1])
         {
-          printf("invalid input");
-          exit(0);
+          fprintf(stderr, "invalid input");
+          for (int i = 0; i < envCount; i++)
+            free(envs[i].env);
+          freeVecToken(tokenVec);
+          return NULL;
         }
 
         memAllocLength += 1;
@@ -144,15 +149,23 @@ Token **getTokens(char *input, char **env)
     int envidx = 0;
     if (!input[i] && (isDoubleQuotes == 1 || isSingleQuotes == 1))
     {
-      fprintf(stderr, "Error: expected a closing quote\n");
-      exit(EXIT_FAILURE);
+      fprintf(stderr, "error: expected a closing quote\n");
+      freeVecToken(tokenVec);
+      for (int i = 0; i < envCount; i++)
+        free(envs[i].env);
+
+      return NULL;
     }
 
     char *val = (char *)malloc(sizeof(char) * (memAllocLength + 1)); // +1 for \0
     if (!val)
     {
-      fprintf(stderr, "malloc failed");
-      exit(EXIT_FAILURE);
+      perror("malloc");
+      freeVecToken(tokenVec);
+      for (int i = 0; i < envCount; i++)
+        free(envs[i].env);
+
+      return NULL;
     }
 
     for (int j = 0; j < tokenLength; j++)
@@ -163,10 +176,11 @@ Token **getTokens(char *input, char **env)
         if (curr.env != NULL)
         {
           strcpy(&val[k], curr.env);
+          free(curr.env); // free env value allocated by myGetenv
         }
         k += curr.valLength;
         val[k] = '\0';
-        j += curr.varNameLength - 1; // +1 lenght in loop condition
+        j += curr.varNameLength - 1; // +1 length in loop condition
         continue;
       }
       if (!isSingleQuotes && input[start + j] == '\\')
@@ -180,24 +194,31 @@ Token **getTokens(char *input, char **env)
     Token *token = (Token *)malloc(sizeof(Token));
     if (!token)
     {
-      fprintf(stderr, "malloc failed");
-      exit(EXIT_FAILURE);
+      perror("malloc");
+      freeVecToken(tokenVec);
+      for (int i = 0; i < envCount; i++)
+        free(envs[i].env);
+
+      return NULL;
     }
     token->token = val;
     token->isOperator = isOperator;
-    allTokens[tokenCount++] = token;
+    pushVecToken(tokenVec, token);
   }
-  allTokens[tokenCount] = NULL;
-  return allTokens;
+  return tokenVec;
 }
 
-Commands *splitCommands(Token **allTokens)
+Commands *splitCommands(VectorToken *tokenVec)
 {
   PipelineComponent *pc = NULL; // pipeline component
   Pipeline *p = NULL;           // pipeline
   Command *fc = NULL;           // full command
 
   Commands *ac = createCommands();
+  if (!ac)
+    goto errorHandle;
+
+  Token **allTokens = tokenVec->data;
 
   int i = 0;
   while (allTokens[i])
@@ -208,26 +229,28 @@ Commands *splitCommands(Token **allTokens)
     {
       Token *nextToken = allTokens[i + 1];
       if (!pc || nextToken == NULL || isDelimiter(nextToken))
-      { // if first token or next commnad is not a file
-        fprintf(stderr, "Error near %s\n", token->token);
-        exit(EXIT_FAILURE);
+      {
+        // if first token or next commnad is not a file then throw an error
+        fprintf(stderr, "error near %s\n", token->token);
+        goto errorHandle;
       }
     }
     else if (isPipe(token))
     {
       if (!pc)
       {
-        i++;
-        fprintf(stderr, "Error near %s\n", token->token);
-        exit(EXIT_FAILURE);
+        fprintf(stderr, "error near %s\n", token->token);
+        goto errorHandle;
       }
 
       if (!p)
       {
         p = createPipeline();
+        if (!p)
+          goto errorHandle;
       }
 
-      push_PipelineComponent(p->components, pc);
+      pushVecPipelineComponent(p->components, pc);
       pc = NULL;
       i++;
       continue;
@@ -236,23 +259,26 @@ Commands *splitCommands(Token **allTokens)
     {
       if (!pc)
       {
-        i++;
-        fprintf(stderr, "Error near %s\n", token->token);
-        exit(EXIT_FAILURE);
+        fprintf(stderr, "error near %s\n", token->token);
+        goto errorHandle;
       }
 
       if (!p)
       {
         p = createPipeline();
+        if (!p)
+          goto errorHandle;
       }
 
       if (!fc)
       {
         fc = createCommand();
+        if (!fc)
+          goto errorHandle;
       }
 
-      push_PipelineComponent(p->components, pc);
-      push_Pipeline(fc->pipelines, p);
+      pushVecPipelineComponent(p->components, pc);
+      pushVecPipeline(fc->pipelines, p);
 
       if (strcmp(token->token, "&&") == 0)
       {
@@ -272,24 +298,27 @@ Commands *splitCommands(Token **allTokens)
     {
       if (!pc)
       {
-        i++;
-        fprintf(stderr, "Error near %s\n", token->token);
-        exit(EXIT_FAILURE);
+        fprintf(stderr, "error near %s\n", token->token);
+        goto errorHandle;
       }
 
       if (!p)
       {
         p = createPipeline();
+        if (!p)
+          goto errorHandle;
       }
 
       if (!fc)
       {
         fc = createCommand();
+        if (!fc)
+          goto errorHandle;
       }
 
-      push_PipelineComponent(p->components, pc);
-      push_Pipeline(fc->pipelines, p);
-      push_Command(ac->commands, fc);
+      pushVecPipelineComponent(p->components, pc);
+      pushVecPipeline(fc->pipelines, p);
+      pushVecCommand(ac->commands, fc);
 
       p->separator = -1; // not real separator it just ;
       pc = NULL;
@@ -302,6 +331,8 @@ Commands *splitCommands(Token **allTokens)
     if (!pc)
     {
       pc = createPipelineComponent();
+      if (!pc)
+        goto errorHandle;
     }
 
     if (isLt(token))
@@ -309,7 +340,13 @@ Commands *splitCommands(Token **allTokens)
     if (isGt(token))
       pc->isGt = true;
 
-    push_Token(pc->tokens, token);
+    Token *newToken = createToken(token->token, token->isOperator);
+    if (!newToken)
+    {
+      fprintf(stdout, "new token creation failed\n");
+      goto errorHandle;
+    }
+    pushVecToken(pc->tokens, newToken);
     i++;
   }
 
@@ -317,23 +354,27 @@ Commands *splitCommands(Token **allTokens)
   {
     if (!pc)
     {
-      fprintf(stderr, "Error: Invalid input near 'EOF'\n");
-      exit(EXIT_FAILURE);
+      fprintf(stderr, "error: Invalid input near 'EOF'\n");
+      goto errorHandle;
     }
 
     if (!p)
     {
       p = createPipeline();
+      if (!p)
+        goto errorHandle;
     }
 
     if (!fc)
     {
       fc = createCommand();
+      if (!fc)
+        goto errorHandle;
     }
 
-    push_PipelineComponent(p->components, pc);
-    push_Pipeline(fc->pipelines, p);
-    push_Command(ac->commands, fc);
+    pushVecPipelineComponent(p->components, pc);
+    pushVecPipeline(fc->pipelines, p);
+    pushVecCommand(ac->commands, fc);
   }
 
   for (int i = 0; i < ac->commands->size; i++)
@@ -359,4 +400,15 @@ Commands *splitCommands(Token **allTokens)
   }
 
   return ac;
+
+errorHandle:
+  if (pc)
+    freePipelineComponent(pc);
+  if (p)
+    freePipeline(p);
+  if (fc)
+    freeCommand(fc);
+  freeCommands(ac);
+
+  return NULL;
 }

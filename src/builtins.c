@@ -13,8 +13,9 @@ int commandCd(char **args, char *initialDirectory)
   if (args[1] == NULL)
   {
     fprintf(stderr, "expected an argument: cd [dir]\n");
+    return 1;
   }
-  int status = chdir(args[1]) != 0;
+  int status = (chdir(args[1]) != 0);
   if (status != 0)
   {
     perror("cd");
@@ -91,8 +92,8 @@ int commandEnv(char **env)
     char *buff = (char *)malloc(sizeof(char) * (count + 1));
     if (buff == NULL)
     {
-      fprintf(stderr, "malloc failed\n");
-      exit(EXIT_FAILURE);
+      perror("malloc");
+      return 1;
     }
     strncpy(buff, env[i], count); // get value of the enviornment variable to print
     buff[count] = '\0';
@@ -132,7 +133,7 @@ int commandWhich(char **args, char **env)
   char *fullpath = getFullPathOfWhich(args[1], env);
   if (fullpath == NULL)
   {
-    fprintf(stdout, "not found\n");
+    fprintf(stdout, "%s: command not found\n", args[1]);
     return 1;
   }
 
@@ -163,8 +164,8 @@ char *getFullPathOfWhich(char *command, char **env)
     if (!buff)
     {
       free(pathEnv);
-      fprintf(stderr, "malloc failed\n");
-      exit(EXIT_FAILURE);
+      perror("malloc");
+      return NULL;
     }
 
     if (tok[len - 1] != *PATH_SEPARATOR)
@@ -207,8 +208,8 @@ char **commandExport(char **args, char **env)
   char **newEnv = (char **)malloc(sizeof(char *) * (envCount + 2)); // 1 for null 1 for new env
   if (newEnv == NULL)
   {
-    fprintf(stderr, "malloc failed\n");
-    exit(EXIT_FAILURE);
+    perror("malloc");
+    return env;
   }
 
   // get the new enviornment variable - variable name
@@ -232,9 +233,9 @@ char **commandExport(char **args, char **env)
   char *varname = (char *)malloc(sizeof(char) * (varnamelen + 1));
   if (varname == NULL)
   {
-    fprintf(stderr, "malloc failed\n");
+    perror("malloc");
     free(newEnv);
-    exit(EXIT_FAILURE);
+    return env;
   }
   strncpy(varname, args[1], varnamelen);
   varname[varnamelen] = '\0';
@@ -254,10 +255,10 @@ char **commandExport(char **args, char **env)
       curr = (char *)malloc(sizeof(char) * (len + 1));
       if (!curr) // malloc failed and delete everything
       {
-        fprintf(stderr, "malloc failed\n");
+        perror("malloc");
         free(varname);
         freeEnv(newEnv);
-        exit(EXIT_FAILURE);
+        return env;
       }
       myStrcpy(curr, env[i]);
       newEnv[k++] = curr;
@@ -270,10 +271,10 @@ char **commandExport(char **args, char **env)
   curr = (char *)malloc(sizeof(char) * (len + 1)); // 1 for \0
   if (!curr)
   {
-    fprintf(stderr, "malloc failed\n");
+    perror("malloc");
     free(varname);
-    freeEnv(env);
-    exit(EXIT_FAILURE);
+    freeEnv(newEnv);
+    return env;
   }
 
   snprintf(curr, len + 1, "%s", args[1]);
@@ -314,8 +315,8 @@ char **commandUnset(char **args, char **env)
   char **newEnv = malloc(sizeof(char *) * (envCount + 1)); // removing 1 and a adding null terminator
   if (!newEnv)
   {
-    fprintf(stderr, "malloc failed\n");
-    exit(EXIT_FAILURE);
+    perror("malloc");
+    return env;
   }
   newEnv[0] = NULL;
 
@@ -338,9 +339,9 @@ char **commandUnset(char **args, char **env)
     newEnv[k] = (char *)malloc(sizeof(char) * (len + 1)); // +1 for '\0'
     if (!newEnv[k])
     {
-      fprintf(stderr, "malloc failed\n");
+      perror("malloc");
       freeEnv(newEnv);
-      exit(EXIT_FAILURE);
+      return env;
     }
 
     strcpy(newEnv[k], env[i]);
@@ -378,8 +379,8 @@ char **cloneEnv(char **env)
   char **newEnv = (char **)malloc(sizeof(char *) * (envCount + 1)); // 1 for null
   if (newEnv == NULL)
   {
-    fprintf(stderr, "malloc failed\n");
-    exit(EXIT_FAILURE);
+    perror("malloc");
+    return NULL;
   }
   int k = 0; // pointer for newEnv variable
   size_t len;
@@ -394,8 +395,8 @@ char **cloneEnv(char **env)
     if (!curr)
     {
       freeEnv(newEnv);
-      fprintf(stderr, "malloc failed\n");
-      exit(EXIT_FAILURE);
+      perror("malloc");
+      return NULL;
     }
     myStrcpy(curr, env[i]);
     newEnv[k++] = curr;

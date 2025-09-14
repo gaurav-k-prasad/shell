@@ -60,7 +60,7 @@ char *myGetenv(const char *name, char **env)
 
       if (!buff)
       {
-        fprintf(stderr, "malloc failed\n");
+        perror("malloc");
         exit(EXIT_FAILURE);
       }
 
@@ -91,8 +91,8 @@ char *myStrdup(const char *str)
   char *dup = (char *)malloc(sizeof(char) * (_strlen + 1)); // caller has to free
   if (!dup)
   {
-    fprintf(stderr, "malloc failed\n");
-    exit(EXIT_FAILURE);
+    perror("malloc");
+    return NULL;
   }
 
   myStrcpy(dup, str);
@@ -176,7 +176,7 @@ int handleBuiltin(char **args, char ***env, char *initialDirectory)
   }
 }
 
-bool isMyImplementedBulitin(char *command)
+bool isMyImplementedBuiltin(char *command)
 {
   if (myStrcmp(command, "echo") == 0 ||
       myStrcmp(command, "pwd") == 0 ||
@@ -189,7 +189,7 @@ bool isMyImplementedBulitin(char *command)
   return false;
 }
 
-int handleMyImplementedBulitin(char **args, char ***env, char *initialDirectory)
+int handleMyImplementedBuiltin(char **args, char ***env, char *initialDirectory)
 {
   if (myStrcmp(args[0], "echo") == 0)
   {
@@ -218,12 +218,14 @@ void closePipes(int fds[][2], int n)
   }
 }
 
-void findInOutFileAndCommandEnd(PipelineComponent *pc, int tokensLen, Token **tokens, char **infile, char **outfile, int *commandEnd)
+void findInOutFileAndCommandEnd(PipelineComponent *pc, char **infile, char **outfile, int *commandEnd)
 {
+  Token **tokens = pc->tokens->data;
+
   if (pc->isLt)
   {
     int i = 0;
-    while (i < tokensLen)
+    while (i < pc->tokens->size)
     {
       if (isLt(tokens[i]))
       {
@@ -237,7 +239,7 @@ void findInOutFileAndCommandEnd(PipelineComponent *pc, int tokensLen, Token **to
   if (pc->isGt)
   {
     int i = 0;
-    while (i < tokensLen)
+    while (i < pc->tokens->size)
     {
       if (isGt(tokens[i]))
       {
@@ -249,6 +251,37 @@ void findInOutFileAndCommandEnd(PipelineComponent *pc, int tokensLen, Token **to
   }
 }
 
+Token *createToken(char *str, bool isOperator)
+{
+  Token *tok = (Token *)malloc(sizeof(Token));
+  if (!tok)
+  {
+    perror("malloc");
+    return NULL;
+  }
+
+  tok->isOperator = isOperator;
+  if (str)
+  {
+    int len = myStrlen(str);
+    char *newStr = (char *)malloc(sizeof(char) * (len + 1)); // +1 for \0
+    if (!newStr)
+    {
+      perror("malloc");
+      free(tok);
+      return NULL;
+    }
+    myStrcpy(newStr, str);
+    tok->token = newStr;
+  }
+  else
+  {
+    tok->token = NULL;
+  }
+
+  return tok;
+}
+
 PipelineComponent *createPipelineComponent()
 {
   PipelineComponent *pc = (PipelineComponent *)malloc(sizeof(PipelineComponent));
@@ -257,8 +290,13 @@ PipelineComponent *createPipelineComponent()
     return NULL;
   }
 
-  Vector_Token *vt = (Vector_Token *)malloc(sizeof(Vector_Token));
-  init_Token(vt, 4);
+  VectorToken *vt = (VectorToken *)malloc(sizeof(VectorToken));
+  if (!vt)
+  {
+    free(pc);
+    return NULL;
+  }
+  initVecToken(vt, 4);
 
   pc->isGt = 0;
   pc->isLt = 0;
@@ -275,8 +313,13 @@ Pipeline *createPipeline()
     return NULL;
   }
 
-  Vector_PipelineComponent *vpc = (Vector_PipelineComponent *)malloc(sizeof(Vector_PipelineComponent));
-  init_PipelineComponent(vpc, 4);
+  VectorPipelineComponent *vpc = (VectorPipelineComponent *)malloc(sizeof(VectorPipelineComponent));
+  if (!vpc)
+  {
+    free(p);
+    return NULL;
+  }
+  initVecPipelineComponent(vpc, 4);
 
   p->components = vpc;
   p->separator = -1; // Pipeline separator not defined yet
@@ -292,8 +335,13 @@ Command *createCommand()
     return NULL;
   }
 
-  Vector_Pipeline *vp = (Vector_Pipeline *)malloc(sizeof(Vector_Pipeline));
-  init_Pipeline(vp, 4);
+  VectorPipeline *vp = (VectorPipeline *)malloc(sizeof(VectorPipeline));
+  if (!vp)
+  {
+    free(fc);
+    return NULL;
+  }
+  initVecPipeline(vp, 4);
   fc->pipelines = vp;
   return fc;
 }
@@ -306,8 +354,13 @@ Commands *createCommands()
     return NULL;
   }
 
-  Vector_Command *vc = (Vector_Command *)malloc(sizeof(Vector_Command));
-  init_Command(vc, 4);
+  VectorCommand *vc = (VectorCommand *)malloc(sizeof(VectorCommand));
+  if (!vc)
+  {
+    free(cmds);
+    return NULL;
+  }
+  initVecCommand(vc, 4);
   cmds->commands = vc;
   return cmds;
 }
@@ -315,4 +368,114 @@ Commands *createCommands()
 bool isDelimiter(Token *token)
 {
   return (isPipe(token) || isLogicalOp(token) || isSemicolon(token) || (isLt(token) && token->isOperator) || (isGt(token) && token->isOperator));
+}
+
+void freeToken(Token *token)
+{
+  if (token)
+  {
+    if (token->token)
+    {
+      free(token->token);
+    }
+    free(token);
+  }
+}
+
+void freeVecToken(VectorToken *vec)
+{
+  if (!vec)
+    return;
+
+  for (int i = 0; i < vec->size; i++)
+  {
+    freeToken(vec->data[i]);
+  }
+  free(vec);
+}
+
+void freePipelineComponent(PipelineComponent *pc)
+{
+  if (pc)
+  {
+    if (pc->tokens)
+    {
+      freeVecToken(pc->tokens);
+    }
+    free(pc);
+  }
+}
+
+void freeVecPipelineComponent(VectorPipelineComponent *vec)
+{
+  if (!vec)
+    return;
+
+  for (int i = 0; i < vec->size; i++)
+  {
+    freePipelineComponent(vec->data[i]);
+  }
+  free(vec);
+}
+
+void freePipeline(Pipeline *p)
+{
+  if (p)
+  {
+    if (p->components)
+    {
+      freeVecPipelineComponent(p->components);
+    }
+    free(p);
+  }
+}
+
+void freeVecPipeline(VectorPipeline *vec)
+{
+  if (!vec)
+    return;
+
+  for (int i = 0; i < vec->size; i++)
+  {
+    freePipeline(vec->data[i]);
+  }
+  free(vec);
+}
+
+void freeCommand(Command *c)
+{
+  if (c)
+  {
+    if (c->pipelines)
+    {
+      freeVecPipeline(c->pipelines);
+    }
+    free(c);
+  }
+}
+
+void freeVecCommand(VectorCommand *vec)
+{
+  if (!vec)
+    return;
+
+  for (int i = 0; i < vec->size; i++)
+  {
+    freeCommand(vec->data[i]);
+  }
+  free(vec);
+}
+
+void freeCommands(Commands *cs)
+{
+  if (!cs)
+  {
+    return;
+  }
+
+  if (cs->commands)
+  {
+    freeVecCommand(cs->commands);
+  }
+  free(cs);
 }
