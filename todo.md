@@ -37,7 +37,5 @@
 
 - Handle invalid commands, syntax errors, and runtime errors
 
-- realloc and malloc in macro malloc error handling
-- returned errors codes / NULL handling
-- Error handling: return status from pipelineComponent executor
+---
 - signal processing ^C

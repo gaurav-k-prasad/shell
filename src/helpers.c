@@ -60,8 +60,7 @@ char *myGetenv(const char *name, char **env)
 
       if (!buff)
       {
-        perror("malloc");
-        exit(EXIT_FAILURE);
+        return NULL;
       }
 
       strcpy(buff, env[i] + nameLen + 1);
@@ -91,7 +90,6 @@ char *myStrdup(const char *str)
   char *dup = (char *)malloc(sizeof(char) * (_strlen + 1)); // caller has to free
   if (!dup)
   {
-    perror("malloc");
     return NULL;
   }
 
@@ -156,15 +154,15 @@ int handleBuiltin(char **args, char ***env, char *initialDirectory)
 {
   if (myStrcmp(args[0], "export") == 0)
   {
-    *env = commandExport(args, *env);
-    if (*env == NULL)
-      return 1;
+    if (commandExport(args, env) == -1)
+      return -1;
   }
   else if (myStrcmp(args[0], "unset") == 0)
   {
-    *env = commandUnset(args, *env);
-    if (*env == NULL)
-      return 1;
+    if (commandUnset(args, env) == -1)
+    {
+      return -1;
+    }
   }
   else if (myStrcmp(args[0], "cd") == 0)
   {
@@ -256,7 +254,6 @@ Token *createToken(char *str, bool isOperator)
   Token *tok = (Token *)malloc(sizeof(Token));
   if (!tok)
   {
-    perror("malloc");
     return NULL;
   }
 
@@ -267,7 +264,6 @@ Token *createToken(char *str, bool isOperator)
     char *newStr = (char *)malloc(sizeof(char) * (len + 1)); // +1 for \0
     if (!newStr)
     {
-      perror("malloc");
       free(tok);
       return NULL;
     }
@@ -296,7 +292,13 @@ PipelineComponent *createPipelineComponent()
     free(pc);
     return NULL;
   }
-  initVecToken(vt, 4);
+
+  if (initVecToken(vt, 4) == -1)
+  {
+    free(pc);
+    free(vt);
+    return NULL;
+  }
 
   pc->isGt = 0;
   pc->isLt = 0;
@@ -319,7 +321,12 @@ Pipeline *createPipeline()
     free(p);
     return NULL;
   }
-  initVecPipelineComponent(vpc, 4);
+  if (initVecPipelineComponent(vpc, 4) == -1)
+  {
+    free(p);
+    free(vpc);
+    return NULL;
+  }
 
   p->components = vpc;
   p->separator = -1; // Pipeline separator not defined yet
@@ -341,7 +348,13 @@ Command *createCommand()
     free(fc);
     return NULL;
   }
-  initVecPipeline(vp, 4);
+
+  if (initVecPipeline(vp, 4))
+  {
+    free(fc);
+    free(vp);
+    return NULL;
+  }
   fc->pipelines = vp;
   return fc;
 }
@@ -360,7 +373,12 @@ Commands *createCommands()
     free(cmds);
     return NULL;
   }
-  initVecCommand(vc, 4);
+  if (initVecCommand(vc, 4))
+  {
+    free(cmds);
+    free(vc);
+    return NULL;
+  }
   cmds->commands = vc;
   return cmds;
 }

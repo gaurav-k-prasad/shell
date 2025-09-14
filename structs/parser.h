@@ -19,48 +19,68 @@
  *
  * @param type The type to store pointers to in the vector.
  */
-#define DEFINE_VECTOR(type)                                                    \
-  /**                                                                          \
-   * @struct Vector##type                                                      \
-   * @brief Dynamic array of pointers to @a type.                              \
-   * @var Vector##type::data Pointer to array of pointers to @a type.          \
-   * @var Vector##type::size Number of elements in the vector.                 \
-   * @var Vector##type::capacity Allocated capacity of the vector.             \
-   */                                                                          \
-  typedef struct                                                               \
-  {                                                                            \
-    type **data;                                                               \
-    size_t size;                                                               \
-    size_t capacity;                                                           \
-  } Vector##type;                                                              \
-                                                                               \
-  /**                                                                          \
-   * @brief Initialize a vector with a given capacity.                         \
-   * @param v Pointer to the vector.                                           \
-   * @param cap Initial capacity.                                              \
-   */                                                                          \
-  static inline void initVec##type(Vector##type *v, size_t cap)                \
-  {                                                                            \
-    v->data = (type **)malloc((cap + 1) * sizeof(type *));                     \
-    v->size = 0;                                                               \
-    v->capacity = cap;                                                         \
-    v->data[0] = NULL;                                                         \
-  }                                                                            \
-                                                                               \
-  /**                                                                          \
-   * @brief Add an element to the vector, resizing if needed.                  \
-   * @param v Pointer to the vector.                                           \
-   * @param val Pointer to the value to add.                                   \
-   */                                                                          \
-  static inline void pushVec##type(Vector##type *v, type *val)                 \
-  {                                                                            \
-    if (v->size == v->capacity)                                                \
-    {                                                                          \
-      v->capacity *= 2;                                                        \
-      v->data = (type **)realloc(v->data, (v->capacity + 1) * sizeof(type *)); \
-    }                                                                          \
-    v->data[v->size++] = val;                                                  \
-    v->data[v->size] = NULL;                                                   \
+#define DEFINE_VECTOR(type)                                                 \
+  /**                                                                       \
+   * @struct Vector##type                                                   \
+   * @brief Dynamic array of pointers to @a type.                           \
+   * @var Vector##type::data Pointer to array of pointers to @a type.       \
+   * @var Vector##type::size Number of elements in the vector.              \
+   * @var Vector##type::capacity Allocated capacity of the vector.          \
+   */                                                                       \
+  typedef struct                                                            \
+  {                                                                         \
+    type **data;                                                            \
+    size_t size;                                                            \
+    size_t capacity;                                                        \
+  } Vector##type;                                                           \
+                                                                            \
+  /**                                                                       \
+   * @brief Initialize a vector with a given capacity.                      \
+   * @param v Pointer to the vector.                                        \
+   * @param cap Initial capacity.                                           \
+   *                                                                        \
+   * @returns -1 if malloc failed                                           \
+   */                                                                       \
+  static inline int initVec##type(Vector##type *v, size_t cap)              \
+  {                                                                         \
+    v->data = (type **)malloc((cap + 1) * sizeof(type *));                  \
+    if (!v->data)                                                           \
+    {                                                                       \
+      v->size = 0;                                                          \
+      v->capacity = 0;                                                      \
+      return -1;                                                            \
+    }                                                                       \
+    v->size = 0;                                                            \
+    v->capacity = cap;                                                      \
+    v->data[0] = NULL;                                                      \
+    return 0;                                                               \
+  }                                                                         \
+                                                                            \
+  /**                                                                       \
+   * @brief Add an element to the vector, resizing if needed.               \
+   * @param v Pointer to the vector.                                        \
+   * @param val Pointer to the value to add.                                \
+   *                                                                        \
+   * @returns -1 if malloc failed                                           \
+   */                                                                       \
+  static inline int pushVec##type(Vector##type *v, type *val)               \
+  {                                                                         \
+    if (v->size == v->capacity)                                             \
+    {                                                                       \
+      size_t newCapacity = v->capacity * 2;                                 \
+      type **newPtr = realloc(v->data, (newCapacity + 1) * sizeof(type *)); \
+      if (!newPtr)                                                          \
+      {                                                                     \
+        return -1;                                                          \
+      }                                                                     \
+      v->data = newPtr;                                                     \
+      v->capacity = newCapacity;                                            \
+    }                                                                       \
+                                                                            \
+    v->data[v->size++] = val;                                               \
+    v->data[v->size] = NULL;                                                \
+                                                                            \
+    return 0;                                                               \
   }
 
 enum Seperator

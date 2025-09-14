@@ -19,11 +19,10 @@ void shellLoop(char **envp)
   // char ***args;
   char *initialDirectory = getcwd(NULL, 0);
   char buff[1024];
-  char **env = cloneEnv(envp);
-
-  if (!env)
+  char **env = NULL;
+  if (cloneEnv(envp, &env) == -1)
   {
-    fprintf(stderr, "enviornment duplication failed");
+    fprintf(stderr, "enviornment duplication failed\n");
     exit(EXIT_FAILURE);
   }
   char *userName = myGetenv("LOGNAME", env);
@@ -46,7 +45,7 @@ void shellLoop(char **envp)
     VectorToken *tokenVec = getTokens(input, env);
     if (tokenVec == NULL)
     {
-      fprintf(stdout, "Lexical phase failed");
+      fprintf(stderr, "Lexical phase failed\n");
       continue;
     }
 
@@ -54,7 +53,7 @@ void shellLoop(char **envp)
     if (allCommands == NULL)
     {
       freeVecToken(tokenVec);
-      fprintf(stdout, "Parsing failed");
+      fprintf(stderr, "Parsing failed\n");
       continue;
     }
 
@@ -64,7 +63,6 @@ void shellLoop(char **envp)
     {
       Command *command = allCommands->commands->data[i];
       int status = executeCommand(command, &env, initialDirectory);
-      printf("---\nStatus: %d\n---\n", status);
     }
     freeCommands(allCommands);
   }

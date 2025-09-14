@@ -29,6 +29,7 @@ int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory)
   int pipeCount = pipelineComponentCount - 1;
   int fds[pipeCount][2];
   int pids[pipelineComponentCount];
+  memset(pids, -1, sizeof(int) * pipelineComponentCount);
 
   // finding if the command is a builtin
   if (pipelineComponentCount > 0)
@@ -40,8 +41,8 @@ int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory)
     {
       if (pipelineComponentCount > 1)
       {
-        fprintf(stderr, "invalid pipeline\n");
-        return 1;
+        fprintf(stderr, "invalid command\n");
+        return -1;
       }
     }
   }
@@ -54,8 +55,6 @@ int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory)
   for (int i = 0; i < pipelineComponentCount; i++)
   {
     int status = executePipelineComponent(pipeline->components->data[i], env, fds, pipeCount, i, pids, initialDirectory);
-
-    // todo: handle status
   }
 
   // close parent pipes
@@ -64,6 +63,9 @@ int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory)
   int pipelineStatus = 0;
   for (int i = 0; i < pipelineComponentCount; i++)
   {
+    if (pids[i] == -1) // if not a valid child process or did not fork
+      continue;
+
     int processStatus = 0;
     waitpid(pids[i], &processStatus, 0);
 
@@ -75,9 +77,14 @@ int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory)
       }
       else
       {
-        pipelineStatus = 1;
+        pipelineStatus = -1;
       }
     }
+  }
+
+  if (pipelineStatus != 0)
+  {
+    fprintf(stderr, "failed: exit code %d\n", pipelineStatus);
   }
 
   return pipelineStatus;
@@ -103,7 +110,7 @@ int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], i
     if (infilefd == -1)
     {
       perror("open");
-      parentRetValue = 1;
+      parentRetValue = -1;
       goto closeFiles;
     }
   }
@@ -113,18 +120,17 @@ int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], i
     if (outfilefd == -1)
     {
       perror("open");
-      parentRetValue = 1;
+      parentRetValue = -1;
       goto closeFiles;
     }
   }
 
-  printf("commandEnd: %d - infile: %s, outfile: %s\n========\n", commandEnd, infile, outfile);
+  // printf("commandEnd: %d - infile: %s, outfile: %s\n========\n", commandEnd, infile, outfile);
 
   char **args = malloc(sizeof(char *) * (commandEnd + 1));
   if (!args)
   {
-    perror("malloc");
-    parentRetValue = 1;
+    parentRetValue = -1;
     goto closeFiles;
   }
 
@@ -145,7 +151,7 @@ int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], i
   {
     free(args);
     perror("fork");
-    parentRetValue = 1;
+    parentRetValue = -1;
     goto closeFiles;
   }
 
@@ -240,7 +246,6 @@ int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], i
         char *buff = malloc(sizeof(char) * (len + 1));                                   // +1 for \0
         if (!buff)
         {
-          perror("malloc");
           free(cwd);
           free(args);
           _exit(1);

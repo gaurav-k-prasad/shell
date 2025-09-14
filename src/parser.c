@@ -4,11 +4,14 @@ VectorToken *getTokens(char *input, char **env)
 {
   int i = 0;
   VectorToken *tokenVec = (VectorToken *)malloc(sizeof(VectorToken));
-  initVecToken(tokenVec, 16);
+  if (initVecToken(tokenVec, 16) == -1)
+  {
+    free(tokenVec);
+    return NULL;
+  }
 
   if (!tokenVec)
   {
-    perror("malloc");
     return NULL;
   }
   int tokenCount = 0;
@@ -56,9 +59,6 @@ VectorToken *getTokens(char *input, char **env)
         variableName[j] = '\0';
 
         char *envVal = myGetenv(variableName, env);
-        if (envVal)
-          envVal = strdup(envVal);
-
         envs[envCount].env = envVal;
         envs[envCount].varNameLength = i - insertPosition;
         envs[envCount].valLength = envVal ? strlen(envVal) : 0;
@@ -157,10 +157,15 @@ VectorToken *getTokens(char *input, char **env)
       return NULL;
     }
 
+    if (memAllocLength == 0) {
+      for (int i = 0; i < envCount; i++)
+        free(envs[i].env);
+      continue;
+    }
+    
     char *val = (char *)malloc(sizeof(char) * (memAllocLength + 1)); // +1 for \0
     if (!val)
     {
-      perror("malloc");
       freeVecToken(tokenVec);
       for (int i = 0; i < envCount; i++)
         free(envs[i].env);
@@ -194,7 +199,7 @@ VectorToken *getTokens(char *input, char **env)
     Token *token = (Token *)malloc(sizeof(Token));
     if (!token)
     {
-      perror("malloc");
+      free(val);
       freeVecToken(tokenVec);
       for (int i = 0; i < envCount; i++)
         free(envs[i].env);
@@ -203,7 +208,16 @@ VectorToken *getTokens(char *input, char **env)
     }
     token->token = val;
     token->isOperator = isOperator;
-    pushVecToken(tokenVec, token);
+
+    if (pushVecToken(tokenVec, token) == -1)
+    {
+      freeVecToken(tokenVec);
+      free(val);
+      for (int i = 0; i < envCount; i++)
+        free(envs[i].env);
+
+      return NULL;
+    }
   }
   return tokenVec;
 }
@@ -216,7 +230,7 @@ Commands *splitCommands(VectorToken *tokenVec)
 
   Commands *ac = createCommands();
   if (!ac)
-    goto errorHandle;
+    goto errorHandler;
 
   Token **allTokens = tokenVec->data;
 
@@ -232,7 +246,7 @@ Commands *splitCommands(VectorToken *tokenVec)
       {
         // if first token or next commnad is not a file then throw an error
         fprintf(stderr, "error near %s\n", token->token);
-        goto errorHandle;
+        goto errorHandler;
       }
     }
     else if (isPipe(token))
@@ -240,17 +254,20 @@ Commands *splitCommands(VectorToken *tokenVec)
       if (!pc)
       {
         fprintf(stderr, "error near %s\n", token->token);
-        goto errorHandle;
+        goto errorHandler;
       }
 
       if (!p)
       {
         p = createPipeline();
         if (!p)
-          goto errorHandle;
+          goto errorHandler;
       }
 
-      pushVecPipelineComponent(p->components, pc);
+      if (pushVecPipelineComponent(p->components, pc) == -1)
+      {
+        goto errorHandler;
+      }
       pc = NULL;
       i++;
       continue;
@@ -260,25 +277,31 @@ Commands *splitCommands(VectorToken *tokenVec)
       if (!pc)
       {
         fprintf(stderr, "error near %s\n", token->token);
-        goto errorHandle;
+        goto errorHandler;
       }
 
       if (!p)
       {
         p = createPipeline();
         if (!p)
-          goto errorHandle;
+          goto errorHandler;
       }
 
       if (!fc)
       {
         fc = createCommand();
         if (!fc)
-          goto errorHandle;
+          goto errorHandler;
       }
 
-      pushVecPipelineComponent(p->components, pc);
-      pushVecPipeline(fc->pipelines, p);
+      if (pushVecPipelineComponent(p->components, pc) == -1)
+      {
+        goto errorHandler;
+      }
+      if (pushVecPipeline(fc->pipelines, p) == -1)
+      {
+        goto errorHandler;
+      }
 
       if (strcmp(token->token, "&&") == 0)
       {
@@ -299,26 +322,35 @@ Commands *splitCommands(VectorToken *tokenVec)
       if (!pc)
       {
         fprintf(stderr, "error near %s\n", token->token);
-        goto errorHandle;
+        goto errorHandler;
       }
 
       if (!p)
       {
         p = createPipeline();
         if (!p)
-          goto errorHandle;
+          goto errorHandler;
       }
 
       if (!fc)
       {
         fc = createCommand();
         if (!fc)
-          goto errorHandle;
+          goto errorHandler;
       }
 
-      pushVecPipelineComponent(p->components, pc);
-      pushVecPipeline(fc->pipelines, p);
-      pushVecCommand(ac->commands, fc);
+      if (pushVecPipelineComponent(p->components, pc) == -1)
+      {
+        goto errorHandler;
+      }
+      if (pushVecPipeline(fc->pipelines, p) == -1)
+      {
+        goto errorHandler;
+      }
+      if (pushVecCommand(ac->commands, fc) == -1)
+      {
+        goto errorHandler;
+      }
 
       p->separator = -1; // not real separator it just ;
       pc = NULL;
@@ -332,7 +364,7 @@ Commands *splitCommands(VectorToken *tokenVec)
     {
       pc = createPipelineComponent();
       if (!pc)
-        goto errorHandle;
+        goto errorHandler;
     }
 
     if (isLt(token))
@@ -344,9 +376,12 @@ Commands *splitCommands(VectorToken *tokenVec)
     if (!newToken)
     {
       fprintf(stdout, "new token creation failed\n");
-      goto errorHandle;
+      goto errorHandler;
     }
-    pushVecToken(pc->tokens, newToken);
+    if (pushVecToken(pc->tokens, newToken) == -1)
+    {
+      goto errorHandler;
+    }
     i++;
   }
 
@@ -355,29 +390,38 @@ Commands *splitCommands(VectorToken *tokenVec)
     if (!pc)
     {
       fprintf(stderr, "error: Invalid input near 'EOF'\n");
-      goto errorHandle;
+      goto errorHandler;
     }
 
     if (!p)
     {
       p = createPipeline();
       if (!p)
-        goto errorHandle;
+        goto errorHandler;
     }
 
     if (!fc)
     {
       fc = createCommand();
       if (!fc)
-        goto errorHandle;
+        goto errorHandler;
     }
 
-    pushVecPipelineComponent(p->components, pc);
-    pushVecPipeline(fc->pipelines, p);
-    pushVecCommand(ac->commands, fc);
+    if (pushVecPipelineComponent(p->components, pc) == -1)
+    {
+      goto errorHandler;
+    }
+    if (pushVecPipeline(fc->pipelines, p) == -1)
+    {
+      goto errorHandler;
+    }
+    if (pushVecCommand(ac->commands, fc) == -1)
+    {
+      goto errorHandler;
+    }
   }
 
-  for (int i = 0; i < ac->commands->size; i++)
+  /* for (int i = 0; i < ac->commands->size; i++)
   {
     Command *currCommand = ac->commands->data[i];
 
@@ -397,11 +441,11 @@ Commands *splitCommands(VectorToken *tokenVec)
       printf("----\n");
     }
     printf("--------\n");
-  }
+  } */
 
   return ac;
 
-errorHandle:
+errorHandler:
   if (pc)
     freePipelineComponent(pc);
   if (p)

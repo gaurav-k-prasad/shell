@@ -110,10 +110,11 @@ char *getFullPathOfWhich(char *command, char **env);
  * @brief clones the given enviornment variables
  * @warning Free required
  *
- * @param env enviornment variables
- * @return char**
+ * @param env original enviornment variables
+ * @param newEnv no need to allocate memory: where to place cloned env
+ * @return int status: -1 if error else 0
  */
-char **cloneEnv(char **env);
+int cloneEnv(char **env, char ***newEnvReference);
 
 /**
  * @brief Handles the built in commands
@@ -364,19 +365,20 @@ int commandCd(char **args, char *initialDirectory);
  *
  * @param args arguments given
  * @param env enviornment variables
- * @return char** env: new enviornment variable
+ * @return int status: -1 if error else 0
  */
-char **commandExport(char **args, char **env);
+int commandExport(char **args, char ***envReference);
 
 /**
  * @brief removes given key from enviornment variable
  * @warning Free required
  *
  * @param args arguments given
- * @param env enviornment variables
- * @return char** env: new enviornment variable
+ * @param env reference of new enviornment variable
+ *
+ * @return int status: -1 if error else 0
  */
-char **commandUnset(char **args, char **env);
+int commandUnset(char **args, char ***env);
 
 // ! My implemented commands
 /**

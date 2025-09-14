@@ -13,14 +13,9 @@ int commandCd(char **args, char *initialDirectory)
   if (args[1] == NULL)
   {
     fprintf(stderr, "expected an argument: cd [dir]\n");
-    return 1;
+    return -1;
   }
   int status = (chdir(args[1]) != 0);
-  if (status != 0)
-  {
-    perror("cd");
-  }
-
   return status;
 }
 
@@ -30,16 +25,12 @@ int commandCd(char **args, char *initialDirectory)
 int commandPwd()
 {
   char *cwd = getcwd(NULL, 0);
-  if (cwd != NULL)
+  if (cwd == NULL)
   {
-    fprintf(stdout, "%s\n", cwd);
-    free(cwd);
+    return -1;
   }
-  else
-  {
-    perror("cwd");
-    return 1;
-  }
+  fprintf(stdout, "%s\n", cwd);
+  free(cwd);
   return 0;
 }
 
@@ -77,7 +68,7 @@ int commandEnv(char **env)
   fprintf(stdout, "%-40s | %s\n", "Enviornment Variable", "Value");
   fprintf(stdout, "-------------------------------------------------------------------------------------------\n");
   if (env == NULL)
-    return 1;
+    return -1;
 
   for (int i = 0; env[i]; i++)
   {
@@ -92,8 +83,7 @@ int commandEnv(char **env)
     char *buff = (char *)malloc(sizeof(char) * (count + 1));
     if (buff == NULL)
     {
-      perror("malloc");
-      return 1;
+      return -1;
     }
     strncpy(buff, env[i], count); // get value of the enviornment variable to print
     buff[count] = '\0';
@@ -114,7 +104,7 @@ int commandWhich(char **args, char **env)
   if (args[1] == NULL)
   {
     fprintf(stderr, "which: expected a filename: which [file]\n");
-    return 1;
+    return -1;
   }
 
   // if one of these then it's a builtin command
@@ -134,7 +124,7 @@ int commandWhich(char **args, char **env)
   if (fullpath == NULL)
   {
     fprintf(stdout, "%s: command not found\n", args[1]);
-    return 1;
+    return -1;
   }
 
   fprintf(stdout, "Found: %s\n", fullpath);
@@ -164,7 +154,6 @@ char *getFullPathOfWhich(char *command, char **env)
     if (!buff)
     {
       free(pathEnv);
-      perror("malloc");
       return NULL;
     }
 
@@ -193,12 +182,13 @@ char *getFullPathOfWhich(char *command, char **env)
  * export VAR="VALUE"
  * export PATH="$PATH:/new/path"
  */
-char **commandExport(char **args, char **env)
+int commandExport(char **args, char ***envReference)
 {
+  char **env = *envReference;
   if (!args[1])
   {
     fprintf(stderr, "export: expected VAR=value\n");
-    return env;
+    return -1;
   }
 
   // count and allocate new enviornment variable string
@@ -208,8 +198,7 @@ char **commandExport(char **args, char **env)
   char **newEnv = (char **)malloc(sizeof(char *) * (envCount + 2)); // 1 for null 1 for new env
   if (newEnv == NULL)
   {
-    perror("malloc");
-    return env;
+    return -1;
   }
 
   // get the new enviornment variable - variable name
@@ -226,16 +215,15 @@ char **commandExport(char **args, char **env)
   if (*str != '=')
   {
     free(newEnv);
-    return env;
+    return -1;
   }
 
   // actually copy the varname
   char *varname = (char *)malloc(sizeof(char) * (varnamelen + 1));
   if (varname == NULL)
   {
-    perror("malloc");
     free(newEnv);
-    return env;
+    return -1;
   }
   strncpy(varname, args[1], varnamelen);
   varname[varnamelen] = '\0';
@@ -255,10 +243,9 @@ char **commandExport(char **args, char **env)
       curr = (char *)malloc(sizeof(char) * (len + 1));
       if (!curr) // malloc failed and delete everything
       {
-        perror("malloc");
         free(varname);
         freeEnv(newEnv);
-        return env;
+        return -1;
       }
       myStrcpy(curr, env[i]);
       newEnv[k++] = curr;
@@ -271,10 +258,9 @@ char **commandExport(char **args, char **env)
   curr = (char *)malloc(sizeof(char) * (len + 1)); // 1 for \0
   if (!curr)
   {
-    perror("malloc");
     free(varname);
     freeEnv(newEnv);
-    return env;
+    return -1;
   }
 
   snprintf(curr, len + 1, "%s", args[1]);
@@ -284,8 +270,9 @@ char **commandExport(char **args, char **env)
   // free the memory
   free(varname);
   freeEnv(env);
+  *envReference = newEnv;
 
-  return newEnv;
+  return 0;
 }
 
 /**
@@ -295,12 +282,13 @@ char **commandExport(char **args, char **env)
  * @param env enviornment variables
  * @return char**
  */
-char **commandUnset(char **args, char **env)
+int commandUnset(char **args, char ***envReference)
 {
+  char **env = *envReference;
   if (args == NULL || args[1] == NULL || env == NULL)
   {
     fprintf(stderr, "expected argument unset [env]");
-    return env;
+    return -1;
   }
 
   // count env
@@ -309,14 +297,15 @@ char **commandUnset(char **args, char **env)
     envCount++;
 
   if (envCount == 0)
-    return env; // nothing to unset
+  {
+    return 0; // nothing to unset
+  }
 
   // in case variable not removed - makes sure there's always space for NULL
   char **newEnv = malloc(sizeof(char *) * (envCount + 1)); // removing 1 and a adding null terminator
   if (!newEnv)
   {
-    perror("malloc");
-    return env;
+    return -1;
   }
   newEnv[0] = NULL;
 
@@ -339,9 +328,8 @@ char **commandUnset(char **args, char **env)
     newEnv[k] = (char *)malloc(sizeof(char) * (len + 1)); // +1 for '\0'
     if (!newEnv[k])
     {
-      perror("malloc");
       freeEnv(newEnv);
-      return env;
+      return -1;
     }
 
     strcpy(newEnv[k], env[i]);
@@ -352,22 +340,23 @@ char **commandUnset(char **args, char **env)
   if (!found)
   {
     freeEnv(newEnv);
-    fprintf(stdout, "not found\n");
-    return env; // RETURN previous enviornment variables
+    return 0;
   }
 
   freeEnv(env);
-  return newEnv;
+  *envReference = newEnv;
+  return 0;
 }
 
 /*
  * clone the env to modify to avoid changing original envs
  */
-char **cloneEnv(char **env)
+int cloneEnv(char **env, char ***newEnvReference)
 {
   if (env == NULL)
   {
-    return NULL;
+    *newEnvReference = NULL;
+    return -1;
   }
 
   // count and allocate new enviornment variable string
@@ -379,8 +368,8 @@ char **cloneEnv(char **env)
   char **newEnv = (char **)malloc(sizeof(char *) * (envCount + 1)); // 1 for null
   if (newEnv == NULL)
   {
-    perror("malloc");
-    return NULL;
+    *newEnvReference = NULL;
+    return -1;
   }
   int k = 0; // pointer for newEnv variable
   size_t len;
@@ -395,14 +384,15 @@ char **cloneEnv(char **env)
     if (!curr)
     {
       freeEnv(newEnv);
-      perror("malloc");
-      return NULL;
+      *newEnvReference = NULL;
+      return -1;
     }
     myStrcpy(curr, env[i]);
     newEnv[k++] = curr;
     newEnv[k] = NULL;
   }
-  return newEnv;
+  *newEnvReference = newEnv;
+  return 0;
 }
 
 /*
