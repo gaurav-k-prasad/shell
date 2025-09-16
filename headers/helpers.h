@@ -2,6 +2,19 @@
 #define HELPERS_H
 
 /**
+ * @brief Signal interrupt handler SGNINT
+ *
+ * @param sig signal code
+ */
+void handleSignal(int sig);
+
+/**
+ * @brief prints the initial info of the shell
+ * eg. curr working directory and user name
+ */
+void printShellStart(char **env, char *userName);
+
+/**
  * @brief Get the Full Path Of given command
  * @warning Free required
  *

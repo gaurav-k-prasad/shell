@@ -1,5 +1,23 @@
 #include "../headers/myshell.h"
 
+void handleSignal(int sig)
+{
+  write(STDOUT_FILENO, "\n", 1);
+}
+
+void printShellStart(char **env, char *userName)
+{
+  char cwd[1024], line[2048];
+  getcwd(cwd, sizeof(cwd));
+
+  if (userName)
+    sprintf(line, "\033[36m@%s\033[0m \033[32m[%s]> \033[0m", userName, cwd);
+  else
+    sprintf(line, "\033[32m[%s]> \033[0m", cwd); // ANSI format coloring
+
+  write(STDOUT_FILENO, line, myStrlen(line));
+}
+
 int myStrcmp(const char *a, const char *b)
 {
 

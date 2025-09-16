@@ -1,6 +1,7 @@
 #ifndef MYSHELL_H
 #define MYSHELL_H
 
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -11,6 +12,7 @@
 #include <signal.h>
 #include <limits.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #define MAX(A, B) (A > B) ? A : B
 #define MIN(A, B) (A < B) ? A : B

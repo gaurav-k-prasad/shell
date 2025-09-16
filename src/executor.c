@@ -8,6 +8,11 @@ int executeCommand(Command *command, char ***env, char *initialDirectory)
     Pipeline *pipeline = command->pipelines->data[i];
     int status = executePipeline(pipeline, env, initialDirectory);
     laststatus = status;
+    if (status > 0) // means that process was interrupted by ^C
+    {
+      return status;
+    }
+
     if (pipeline->separator == AND && status != 0)
     {
       break;
@@ -67,7 +72,15 @@ int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory)
       continue;
 
     int processStatus = 0;
-    waitpid(pids[i], &processStatus, 0);
+    // in case it's interrupted by a interrupt the waitpid sys call won't be restarted
+    // as SA_RESTART in SIGINT handling is 0 so we manually restart it
+    while (waitpid(pids[i], &processStatus, 0) == -1)
+    {
+      if (errno == EINTR)
+        continue; // interrupted by signal, retry
+      else
+        break; // real error, stop
+    }
 
     if (i == pipelineComponentCount - 1)
     {
@@ -75,16 +88,23 @@ int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory)
       {
         pipelineStatus = WEXITSTATUS(processStatus); // 0 = success
       }
+      else if (WIFSIGNALED(processStatus))
+      {
+        pipelineStatus = WTERMSIG(processStatus);
+        for (int j = i; j < pipelineComponentCount; j++)
+        {
+          if (pids[j] > 0)
+          {
+            kill(pids[j], SIGKILL);
+          }
+        }
+        return pipelineStatus; // ^C interrupted the process
+      }
       else
       {
         pipelineStatus = -1;
       }
     }
-  }
-
-  if (pipelineStatus != 0)
-  {
-    fprintf(stderr, "failed: exit code %d\n", pipelineStatus);
   }
 
   return pipelineStatus;
