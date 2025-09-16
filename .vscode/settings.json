@@ -12,6 +12,9 @@
     "signal.h": "c",
     "types.h": "c",
     "stdlib.h": "c",
-    "parser.h": "c"
+    "parser.h": "c",
+    "ctype.h": "c",
+    "helpers.h": "c",
+    "builtins.h": "c"
   }
 }
