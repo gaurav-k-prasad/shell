@@ -93,6 +93,8 @@ typedef struct Token
 {
   bool isOperator; /**< True if the token is an operator. */
   char *token;     /**< The string value of the token. */
+  int len;
+  int capacity;
 } Token;
 DEFINE_VECTOR(Token)
 

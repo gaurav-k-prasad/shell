@@ -37,11 +37,32 @@
  * @brief Extract the tokens from input
  * @warning Free required
  *
+ * @deprecated
+ * @param input input string
+ * @param env enviornment variable array
+ * @return VectorToken* Vector of tokens
+ */
+VectorToken *getTokensDeprecated(char *input, char **env);
+
+/**
+ * @brief Extract the tokens from input
+ * @warning Free required
+ *
  * @param input input string
  * @param env enviornment variable array
  * @return VectorToken* Vector of tokens
  */
 VectorToken *getTokens(char *input, char **env);
+
+/**
+ * @brief expands the token and evaluates $ENV
+ * @warning Free required
+ *
+ * @param input input string
+ * @param env enviornment variable array
+ * @return Token* token
+ */
+Token *expandToken(Token *token, bool isOperator, bool isDQuotes, bool isSQuotes, char **env);
 
 /**
  * @brief Splits the tokens into parsed output
@@ -58,9 +79,29 @@ Commands *splitCommands(VectorToken *tokenVec);
  *
  * @param str string to copy to new token
  * @param isOperator is it an operator
+ * @param capacity capacity of string (capacity >= len)
+ * @param len length of string
  * @return Token*
  */
-Token *createToken(char *str, bool isOperator);
+Token *createToken(char *str, int len, bool isOperator, int capacity);
+
+/**
+ * @brief insert the given character into the token char array
+ *
+ * @param token Reference to the token
+ * @param c character to insert
+ * @return int status: return -1 if error else 0
+ */
+int insertInTokenChar(Token *token, char c);
+
+/**
+ * @brief insert the given string into the token char array
+ *
+ * @param token Reference to the token
+ * @param str string to insert
+ * @return int status: return -1 if error else 0
+ */
+int insertInTokenStr(Token *token, char *str);
 
 /**
  * @brief Create a Pipeline Component object

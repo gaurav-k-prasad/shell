@@ -249,33 +249,69 @@ void findInOutFileAndCommandEnd(PipelineComponent *pc, char **infile, char **out
   }
 }
 
-Token *createToken(char *str, bool isOperator)
+Token *createToken(char *str, int len, bool isOperator, int capacity)
 {
+  if (capacity < len || capacity < 1)
+  {
+    return NULL;
+  }
+
   Token *tok = (Token *)malloc(sizeof(Token));
   if (!tok)
   {
     return NULL;
   }
 
-  tok->isOperator = isOperator;
-  if (str)
+  char *newStr = (char *)malloc(sizeof(char) * (capacity + 1)); // +1 for \0
+  if (!newStr)
   {
-    int len = myStrlen(str);
-    char *newStr = (char *)malloc(sizeof(char) * (len + 1)); // +1 for \0
+    free(tok);
+    return NULL;
+  }
+  if (str)
+    strncpy(newStr, str, len);
+
+  newStr[len] = '\0';
+  tok->token = newStr;
+  tok->isOperator = isOperator;
+  tok->capacity = capacity;
+  tok->len = len;
+  return tok;
+}
+
+int insertInTokenChar(Token *token, char c)
+{
+  if (token->len == token->capacity)
+  {
+    char *newStr = (char *)realloc(token->token, sizeof(char) * (token->capacity * 2 + 1));
     if (!newStr)
     {
-      free(tok);
-      return NULL;
+      return -1;
     }
-    myStrcpy(newStr, str);
-    tok->token = newStr;
-  }
-  else
-  {
-    tok->token = NULL;
+    token->token = newStr;
+    token->capacity *= 2;
   }
 
-  return tok;
+  token->token[token->len++] = c;
+  token->token[token->len] = '\0';
+  return 0;
+}
+
+int insertInTokenStr(Token *token, char *str)
+{
+  if (!str) // nothing to insert
+    return 0;
+
+  int i = 0;
+  while (str[i])
+  {
+    if (insertInTokenChar(token, str[i++]) == -1)
+    {
+      return -1;
+    }
+  }
+
+  return 0;
 }
 
 PipelineComponent *createPipelineComponent()

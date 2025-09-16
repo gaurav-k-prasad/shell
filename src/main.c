@@ -15,8 +15,6 @@ void shellLoop(char **envp)
 {
   char *input = NULL;
   size_t input_size = 0;
-  // char **args;
-  // char ***args;
   char *initialDirectory = getcwd(NULL, 0);
   char buff[1024];
   char **env = NULL;

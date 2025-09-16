@@ -1,19 +1,19 @@
 #include "../headers/myshell.h"
 
-VectorToken *getTokens(char *input, char **env)
+VectorToken *getTokensDeprecated(char *input, char **env)
 {
   int i = 0;
   VectorToken *tokenVec = (VectorToken *)malloc(sizeof(VectorToken));
+  if (!tokenVec)
+  {
+    return NULL;
+  }
   if (initVecToken(tokenVec, 16) == -1)
   {
     free(tokenVec);
     return NULL;
   }
 
-  if (!tokenVec)
-  {
-    return NULL;
-  }
   int tokenCount = 0;
 
   EnviornmentVariableReplace envs[64];
@@ -88,7 +88,7 @@ VectorToken *getTokens(char *input, char **env)
       {
         if (start == i)
         {
-          if (input[i + 1] && input[i + 1] == input[i])
+          if (input[i] && input[i + 1] == input[i])
           {
             i++;
             tokenLength++;
@@ -157,12 +157,13 @@ VectorToken *getTokens(char *input, char **env)
       return NULL;
     }
 
-    if (memAllocLength == 0) {
+    if (memAllocLength == 0)
+    {
       for (int i = 0; i < envCount; i++)
         free(envs[i].env);
       continue;
     }
-    
+
     char *val = (char *)malloc(sizeof(char) * (memAllocLength + 1)); // +1 for \0
     if (!val)
     {
@@ -220,6 +221,257 @@ VectorToken *getTokens(char *input, char **env)
     }
   }
   return tokenVec;
+}
+
+VectorToken *getTokens(char *input, char **env)
+{
+  int i = 0;
+  VectorToken *tokenVec = (VectorToken *)malloc(sizeof(VectorToken));
+  if (!tokenVec)
+  {
+    return NULL;
+  }
+  if (initVecToken(tokenVec, 16) == -1)
+  {
+    free(tokenVec);
+    return NULL;
+  }
+
+  Token *currToken = createToken(NULL, 0, false, 1);
+  if (!currToken)
+    goto errorHandle;
+
+  bool isDoubleQuotes = false;
+  bool isSingleQuotes = false;
+  bool isOperator = false;
+  bool isFlag = false;
+  bool isTokenEnd = false;
+  while (true)
+  {
+    if (isTokenEnd || input[i] == '\0')
+    {
+      if (currToken->len > 0)
+      {
+        currToken->isOperator = isOperator;
+
+        Token *expandedToken = expandToken(currToken, isOperator, isDoubleQuotes, isSingleQuotes, env);
+        if (!expandedToken)
+          goto errorHandle;
+
+        if (expandedToken->len > 0 && pushVecToken(tokenVec, expandedToken) == -1)
+        {
+          freeToken(expandedToken);
+          goto errorHandle;
+        }
+        freeToken(currToken); // currToken not needed as replaced by expanded tokens
+        currToken = createToken(NULL, 0, false, 1);
+        if (!currToken)
+          goto errorHandle;
+        isDoubleQuotes = false;
+        isSingleQuotes = false;
+        isOperator = false;
+        isFlag = false;
+        isTokenEnd = false;
+      }
+
+      if (input[i] == '\0')
+        break;
+    }
+    if (input[i] == ' ')
+    {
+      isTokenEnd = true;
+      i++;
+    }
+    else if (input[i] == '"' || input[i] == '\'')
+    {
+      if (isFlag)
+      {
+        isTokenEnd = true;
+        continue;
+      }
+      char quote = input[i];
+
+      i++; // skip " or '
+      while (input[i] && input[i] != quote)
+      {
+        if (input[i] == '\\')
+        {
+          if (insertInTokenChar(currToken, input[i++]) == -1)
+          {
+            goto errorHandle;
+          }
+          if (!input[i])
+          {
+            fprintf(stderr, "syntax error\n");
+            goto errorHandle;
+          }
+        }
+
+        if (insertInTokenChar(currToken, input[i++]) == -1)
+        {
+          goto errorHandle;
+        }
+      }
+      if (!input[i])
+      {
+        fprintf(stderr, "syntax error expected a %c\n", quote);
+        goto errorHandle;
+      }
+      if (quote == '"')
+        isDoubleQuotes = true;
+      else
+        isSingleQuotes = true;
+
+      i++; // skip " or '
+      isTokenEnd = false;
+    }
+    else if (input[i] == ';' || input[i] == '<')
+    {
+      if (currToken->len > 0) // flush the token
+      {
+        isTokenEnd = true;
+        continue;
+      }
+      if (insertInTokenChar(currToken, input[i++]) == -1)
+      {
+        goto errorHandle;
+      }
+      isOperator = true;
+      isTokenEnd = true;
+    }
+    else if (input[i] == '>' || input[i] == '&' || input[i] == '|')
+    {
+      if (currToken->len > 0) // flush the token
+      {
+        isTokenEnd = true;
+        continue;
+      }
+      if (insertInTokenChar(currToken, input[i++]) == -1)
+      {
+        goto errorHandle;
+      }
+      if (input[i] && input[i] == input[i - 1])
+      {
+        if (insertInTokenChar(currToken, input[i++]) == -1)
+        {
+          goto errorHandle;
+        }
+      }
+      isOperator = true;
+      isTokenEnd = true;
+    }
+    else if (input[i] == '\\' && !input[i + 1])
+    {
+      fprintf(stderr, "syntax error near \\\n");
+      goto errorHandle;
+    }
+    else // all general characters
+    {
+      if (input[i] == '\\')
+      {
+        if (insertInTokenChar(currToken, input[i++]) == -1)
+        {
+          goto errorHandle;
+        }
+        if (!input[i])
+        {
+          fprintf(stderr, "sytnax error expected a '\n");
+          goto errorHandle;
+        }
+      }
+      else if (input[i] == '-')
+      {
+        isFlag = true;
+      }
+
+      if (insertInTokenChar(currToken, input[i++]) == -1)
+      {
+        goto errorHandle;
+      }
+      isTokenEnd = false;
+    }
+  }
+
+  freeToken(currToken); // at the end redundant token will be created
+  return tokenVec;
+
+errorHandle:
+  freeVecToken(tokenVec);
+  freeToken(currToken);
+  return NULL;
+}
+
+Token *expandToken(Token *token, bool isOperator, bool isDQuotes, bool isSQuotes, char **env)
+{
+
+  if (!token)
+    return NULL;
+
+  char *input = token->token;
+  Token *expandedToken;
+
+  if (isOperator || isSQuotes) // if it's an operator or is in single quotes then no need for expansion
+  {
+    int len = myStrlen(input);
+    expandedToken = createToken(input, len, isOperator, len);
+    if (!expandedToken)
+      goto errorHandle;
+
+    return expandedToken;
+  }
+  else
+  {
+    expandedToken = createToken(NULL, 0, false, 1);
+  }
+
+  int i = 0;
+
+  while (input[i])
+  {
+    if (input[i] == '\\')
+    {
+      i++;
+      if (insertInTokenChar(expandedToken, input[i++]) == -1)
+      {
+        goto errorHandle;
+      }
+    }
+    else if (input[i] == '$') // find the enviornment variable related to the given token
+    {
+      i++;                           // skip $
+      char *envKeyStart = &input[i]; // starting pointer of enviornment variable key
+
+      while (input[i] && isalnum(input[i]) || input[i] == '_') // find the end point of enviornment variable name
+        i++;
+
+      char lastChar = input[i]; // store the last character so that we can replace it back
+      input[i] = '\0';          // after finding the enviornment variable we can subsitute back the input[i] = lastChar
+
+      char *envVal = myGetenv(envKeyStart, env);
+      if (insertInTokenStr(expandedToken, envVal) == -1)
+      {
+        goto errorHandle;
+      }
+
+      input[i] = lastChar;
+      free(envVal);
+    }
+    else
+    {
+      // general characters
+      if (insertInTokenChar(expandedToken, input[i++]) == -1)
+      {
+        goto errorHandle;
+      }
+    }
+  }
+
+  return expandedToken;
+
+errorHandle:
+  freeToken(expandedToken);
+
+  return NULL;
 }
 
 Commands *splitCommands(VectorToken *tokenVec)
@@ -372,7 +624,8 @@ Commands *splitCommands(VectorToken *tokenVec)
     if (isGt(token))
       pc->isGt = true;
 
-    Token *newToken = createToken(token->token, token->isOperator);
+    int copyTokenLen = myStrlen(token->token);
+    Token *newToken = createToken(token->token, copyTokenLen, token->isOperator, copyTokenLen);
     if (!newToken)
     {
       fprintf(stdout, "new token creation failed\n");

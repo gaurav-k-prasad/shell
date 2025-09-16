@@ -1,4 +1,4 @@
-TARGET = myshell.exe
+TARGET = myshell
 OBJ = src/main.c src/parser.c src/helpers.c src/builtins.c src/executor.c
 CC = gcc
 
