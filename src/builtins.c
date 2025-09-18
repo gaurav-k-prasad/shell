@@ -15,8 +15,14 @@ int commandCd(char **args, char *initialDirectory)
     fprintf(stderr, "expected an argument: cd [dir]\n");
     return -1;
   }
-  int status = (chdir(args[1]) != 0);
-  return status;
+  
+  if (chdir(args[1]) != 0)
+  {
+    perror("cd");
+    return -1;
+  }
+  
+  return 0;
 }
 
 /*
@@ -127,7 +133,7 @@ int commandWhich(char **args, char **env)
     return -1;
   }
 
-  fprintf(stdout, "Found: %s\n", fullpath);
+  fprintf(stdout, "%s\n", fullpath);
   free(fullpath);
   return 0;
 }

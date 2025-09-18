@@ -45,6 +45,15 @@ int cloneEnv(char **env, char ***newEnvReference);
 int handleBuiltin(char **args, char ***env, char *initialDirectory);
 
 /**
+ * @brief Kills the processes in the array
+ * 
+ * @param start start of the array index
+ * @param end till where
+ * @param pids process ids
+ */
+void killPids(int start, int end, int pids[]);
+
+/**
  * @brief Handles my implemented commands
  *
  * @param args Arguments given via terminal

@@ -172,15 +172,11 @@ int handleBuiltin(char **args, char ***env, char *initialDirectory)
 {
   if (myStrcmp(args[0], "export") == 0)
   {
-    if (commandExport(args, env) == -1)
-      return -1;
+    return commandExport(args, env);
   }
   else if (myStrcmp(args[0], "unset") == 0)
   {
-    if (commandUnset(args, env) == -1)
-    {
-      return -1;
-    }
+    return commandUnset(args, env);
   }
   else if (myStrcmp(args[0], "cd") == 0)
   {
@@ -189,6 +185,21 @@ int handleBuiltin(char **args, char ***env, char *initialDirectory)
   else if (myStrcmp(args[0], "exit") == 0 || myStrcmp(args[0], "quit") == 0)
   {
     exit(EXIT_SUCCESS);
+  }
+
+  return 0;
+}
+
+void killPids(int start, int end, int pids[])
+{
+  for (int j = start; j < end; j++)
+  {
+    printf("pid: %d", pids[j]);
+    if (pids[j] > 0)
+    {
+      fflush(stdout);
+      kill(pids[j], SIGKILL);
+    }
   }
 }
 

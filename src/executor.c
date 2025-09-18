@@ -60,6 +60,11 @@ int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory)
   for (int i = 0; i < pipelineComponentCount; i++)
   {
     int status = executePipelineComponent(pipeline->components->data[i], env, fds, pipeCount, i, pids, initialDirectory);
+    if (status == -1)
+    {
+      killPids(0, i, pids); // kill all the processes till now if pipeline creation failed
+      return -1;
+    }
   }
 
   // close parent pipes
@@ -91,13 +96,7 @@ int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory)
       else if (WIFSIGNALED(processStatus))
       {
         pipelineStatus = WTERMSIG(processStatus);
-        for (int j = i; j < pipelineComponentCount; j++)
-        {
-          if (pids[j] > 0)
-          {
-            kill(pids[j], SIGKILL);
-          }
-        }
+        killPids(i, pipelineComponentCount, pids);
         return pipelineStatus; // ^C interrupted the process
       }
       else
