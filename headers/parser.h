@@ -9,17 +9,6 @@
  * @brief Extract the tokens from input
  * @warning Free required
  *
- * @deprecated
- * @param input input string
- * @param env enviornment variable array
- * @return VectorToken* Vector of tokens
- */
-VectorToken *getTokensDeprecated(char *input, char **env);
-
-/**
- * @brief Extract the tokens from input
- * @warning Free required
- *
  * @param input input string
  * @param env enviornment variable array
  * @return VectorToken* Vector of tokens
