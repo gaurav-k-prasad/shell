@@ -63,6 +63,7 @@ int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory)
     if (status == -1)
     {
       killPids(0, i, pids); // kill all the processes till now if pipeline creation failed
+      enableRawMode();
       return -1;
     }
   }
@@ -97,6 +98,7 @@ int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory)
       {
         pipelineStatus = WTERMSIG(processStatus);
         killPids(i, pipelineComponentCount, pids);
+        enableRawMode();
         return pipelineStatus; // ^C interrupted the process
       }
       else
@@ -105,7 +107,8 @@ int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory)
       }
     }
   }
-
+  
+  enableRawMode();
   return pipelineStatus;
 }
 
@@ -178,6 +181,9 @@ int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], i
 
   if (pid == 0)
   {
+    disableRawMode();
+    signal(SIGINT, SIG_DFL);
+
     int exitError = 0;
 
     // if infile or outfile connect them

@@ -194,7 +194,6 @@ void killPids(int start, int end, int pids[])
 {
   for (int j = start; j < end; j++)
   {
-    printf("pid: %d", pids[j]);
     if (pids[j] > 0)
     {
       fflush(stdout);

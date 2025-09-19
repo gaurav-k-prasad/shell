@@ -38,4 +38,4 @@
 - Handle invalid commands, syntax errors, and runtime errors
 
 ---
-- signal processing ^C
+- process groups

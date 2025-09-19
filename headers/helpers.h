@@ -1,5 +1,6 @@
 #ifndef HELPERS_H
 #define HELPERS_H
+#include "./parser.h"
 
 /**
  * @brief Signal interrupt handler SGNINT

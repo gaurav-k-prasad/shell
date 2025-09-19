@@ -18,6 +18,10 @@
     "builtins.h": "c",
     "errno.h": "c",
     "limits.h": "c",
-    "sigaction.h": "c"
+    "sigaction.h": "c",
+    "termios.h": "c",
+    "forgettingcirculararray.h": "c",
+    "termbits.h": "c",
+    "forgettingdll.h": "c"
   }
 }

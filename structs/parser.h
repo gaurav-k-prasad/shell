@@ -1,6 +1,5 @@
 #ifndef PARSER_STRUCTURES_H
 #define PARSER_STRUCTURES_H
-
 #include <stdbool.h>
 #include <stdlib.h>
 

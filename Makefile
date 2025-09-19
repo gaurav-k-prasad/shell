@@ -1,9 +1,9 @@
 TARGET = myshell
-OBJ = src/main.c src/parser.c src/helpers.c src/builtins.c src/executor.c
+OBJ = src/main.c src/parser.c src/helpers.c src/builtins.c src/executor.c src/input.c src/forgettingDLL.c
 CC = gcc
 
 all: 
-	$(CC) -o $(TARGET) $(OBJ)
+	$(CC) -g -o $(TARGET) $(OBJ)
 clean:
 	rm -f *.o
 fclean: clean

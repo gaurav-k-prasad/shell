@@ -1,5 +1,6 @@
 #include "../headers/myshell.h"
 
+struct termios orig_termios;
 void shellLoop(char **env);
 
 int main(int argc, char const *argv[], char *envp[])
@@ -23,8 +24,14 @@ int main(int argc, char const *argv[], char *envp[])
 
 void shellLoop(char **envp)
 {
-  char *input = NULL;
-  size_t input_size = 0;
+  ForgettingDoublyLinkedList *history = createFDLL(100);
+  if (tcgetattr(STDIN_FILENO, &orig_termios) == -1)
+    exit(EXIT_FAILURE);
+
+  atexit(disableRawMode);
+  enableRawMode();
+
+  char *input = NULL; // input string
   char *initialDirectory = getcwd(NULL, 0);
   char **env = NULL;
   if (cloneEnv(envp, &env) == -1)
@@ -37,22 +44,9 @@ void shellLoop(char **envp)
   while (1)
   {
     printShellStart(env, userName);
-    size_t nread = getline(&input, &input_size, stdin);
-    if (nread == -1)
-    {
-      if (errno == EINTR)
-      {
-        // EINTR means the function was interrupted by a signal!
-        clearerr(stdin);
-        continue;
-      }
-      else
-      {
-        perror("getline");
-        break;
-      }
-    }
-    input[strcspn(input, "\n")] = '\0';
+    input = getInputString(history);
+    if (input == NULL)
+      continue;
 
     VectorToken *tokenVec = getTokens(input, env);
     if (tokenVec == NULL)
@@ -61,6 +55,20 @@ void shellLoop(char **envp)
       continue;
     }
 
+    if (tokenVec->size > 0)
+    {
+      if (history->size > 0)
+      {
+        if (myStrcmp(input, history->tail->command) != 0)
+          insertInFDLL(history, input);
+      }
+      else
+      {
+        insertInFDLL(history, input);
+      }
+    }
+    free(input); // free the input string
+
     Commands *allCommands = splitCommands(tokenVec);
     if (allCommands == NULL)
     {
@@ -68,7 +76,6 @@ void shellLoop(char **envp)
       fprintf(stderr, "Parsing failed\n");
       continue;
     }
-
     freeVecToken(tokenVec);
 
     for (int i = 0; i < allCommands->commands->size; i++)
@@ -81,6 +88,7 @@ void shellLoop(char **envp)
     freeCommands(allCommands);
   }
 
+  freeFDLL(history);
   free(userName);
   freeEnv(env);
 }

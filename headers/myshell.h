@@ -13,9 +13,12 @@
 #include <limits.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <termios.h>
 
 #define MAX(A, B) (A > B) ? A : B
 #define MIN(A, B) (A < B) ? A : B
+#define RIGHT "\033[C"
+#define LEFT "\033[D"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -36,6 +39,8 @@
 #include "builtins.h"
 #include "executors.h"
 #include "helpers.h"
+#include "input.h"
 #include "parser.h"
+#include "forgettingDLL.h"
 
 #endif
