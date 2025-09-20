@@ -39,8 +39,8 @@ char *getInputString(ForgettingDoublyLinkedList *history)
 {
   char *buffer = NULL;
   size_t buffer_size = 2048; // initial buffer length
-  size_t lastPosition = 0; // last position of string
-  size_t currPosition = 0; // incase the caret goes left by <- key
+  size_t lastPosition = 0;   // last position of string
+  size_t currPosition = 0;   // incase the caret goes left by <- key
   char c;
 
   buffer = malloc(buffer_size);
@@ -251,6 +251,10 @@ char *getInputString(ForgettingDoublyLinkedList *history)
       for (int i = lastPosition; i > currPosition; i--)
         printf(LEFT);
       fflush(stdout);
+    }
+    else if (c == 9) // tab character
+    {
+      continue; // not implemented yet
     }
     else
     {

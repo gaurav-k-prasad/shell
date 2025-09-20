@@ -6,7 +6,7 @@ To run the shell -
 
 1. Install `make` on your system
 2. put `make` on terminal
-3. run `./myshell` to run the shell
+3. run `./gshell` to run the shell
 
 
 ## Custom Shell with Job Control and Terminal Handling
