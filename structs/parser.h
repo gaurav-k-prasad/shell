@@ -118,6 +118,7 @@ DEFINE_VECTOR(Pipeline)
 typedef struct Command
 {
   VectorPipeline *pipelines; /**< Vector of all pipelines. */
+  bool isBackground;         /** True if the command is a background process */
 } Command;
 DEFINE_VECTOR(Command)
 

@@ -38,7 +38,7 @@ void clearText(int len)
 char *getInputString(ForgettingDoublyLinkedList *history)
 {
   char *buffer = NULL;
-  size_t buffer_size = 10; // initial buffer length
+  size_t buffer_size = 2048; // initial buffer length
   size_t lastPosition = 0; // last position of string
   size_t currPosition = 0; // incase the caret goes left by <- key
   char c;

@@ -1,8 +1,13 @@
 #include "../headers/myshell.h"
 
-void handleSignal(int sig)
+void handleSignal(int sig, siginfo_t *info, void *ucontext)
 {
-  write(STDOUT_FILENO, "\n", 1);
+  if (sig == SIGINT)
+  {
+    write(STDOUT_FILENO, "^C\n", 3);
+  } else if (sig == SIGCHLD) {
+    waitpid(-1, NULL, WNOHANG); // reap the child process
+  }
 }
 
 void printShellStart(char **env, char *userName)
@@ -132,6 +137,11 @@ char *myStrchr(const char *str, const char delimiter)
 bool isSemicolon(Token *input)
 {
   return (input->isOperator && strcmp(input->token, ";") == 0);
+}
+
+bool isBackground(Token *input)
+{
+  return (input->isOperator && strcmp(input->token, "&") == 0);
 }
 
 bool isLogicalOp(Token *input)
@@ -420,6 +430,7 @@ Command *createCommand()
     return NULL;
   }
   fc->pipelines = vp;
+  fc->isBackground = false;
   return fc;
 }
 

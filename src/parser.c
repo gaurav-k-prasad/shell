@@ -346,7 +346,7 @@ Commands *splitCommands(VectorToken *tokenVec)
       i++;
       continue;
     }
-    else if (isSemicolon(token))
+    else if (isSemicolon(token) || isBackground(token))
     {
       if (!pc)
       {
@@ -375,6 +375,11 @@ Commands *splitCommands(VectorToken *tokenVec)
       if (pushVecPipeline(fc->pipelines, p) == -1)
       {
         goto errorHandler;
+      }
+
+      if (isBackground(token))
+      {
+        fc->isBackground = true;
       }
       if (pushVecCommand(ac->commands, fc) == -1)
       {
@@ -415,7 +420,9 @@ Commands *splitCommands(VectorToken *tokenVec)
     i++;
   }
 
-  if (i >= 1 && !isSemicolon(allTokens[i - 1]))
+  // if there is no ; or & at the end of the input it won't be added in the Commmands *
+  // so manually adding it
+  if (i > 0 && !isSemicolon(allTokens[i - 1]) && !isBackground(allTokens[i - 1]))
   {
     if (!pc)
     {

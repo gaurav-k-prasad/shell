@@ -3,11 +3,13 @@
 #include "./parser.h"
 
 /**
- * @brief Signal interrupt handler SGNINT
+ * @brief Signal interrupt handler
  *
  * @param sig signal code
+ * @param info not used
+ * @param ucontext not used
  */
-void handleSignal(int sig);
+void handleSignal(int sig, siginfo_t *info, void *ucontext);
 
 /**
  * @brief prints the initial info of the shell
@@ -47,7 +49,7 @@ int handleBuiltin(char **args, char ***env, char *initialDirectory);
 
 /**
  * @brief Kills the processes in the array
- * 
+ *
  * @param start start of the array index
  * @param end till where
  * @param pids process ids

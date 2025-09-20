@@ -1,34 +1,69 @@
 #include "../headers/myshell.h"
 
-int executeCommand(Command *command, char ***env, char *initialDirectory)
+int executeAllPipelines(Command *command, char ***env, char *initialDirectory, int *laststatus)
 {
-  int laststatus = 0;
   for (int i = 0; i < command->pipelines->size; i++)
   {
     Pipeline *pipeline = command->pipelines->data[i];
-    int status = executePipeline(pipeline, env, initialDirectory);
-    laststatus = status;
+    int status = executePipeline(pipeline, env, initialDirectory, command->isBackground);
+    *laststatus = status;
     if (status > 0) // means that process was interrupted by ^C
     {
-      return status;
+      return -1;
     }
 
-    if (pipeline->separator == AND && status != 0)
-    {
+    if (pipeline->separator == AND && status != 0 || pipeline->separator == OR && status == 0)
       break;
-    }
-    else if (pipeline->separator == OR)
-    {
-      if (status == 0)
-      {
-        break;
-      }
-    }
   }
-  return laststatus;
+  return 0;
 }
 
-int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory)
+int executeCommand(Command *command, char ***env, char *initialDirectory)
+{
+  int laststatus = 0;
+  if (command->isBackground)
+  {
+    pid_t backgroundShell = fork();
+    if (backgroundShell == -1)
+    {
+      return -1;
+    }
+
+    if (backgroundShell == 0) // child process
+    {
+      setpgid(0, 0);
+
+      // reset the signals for the child terminal
+      signal(SIGCHLD, SIG_DFL);
+      signal(SIGINT, SIG_DFL);
+
+      // executes all the pipelines
+      executeAllPipelines(command, env, initialDirectory, &laststatus);
+
+      // ideally should be in parent shell but...
+      printf("Background process exit: %d\n", laststatus);
+      fflush(stdout);
+      _exit(laststatus);
+    }
+    else
+    {
+      // make the background shell it's own process group
+      setpgid(backgroundShell, backgroundShell);
+
+      printf("Process Group: %d\n", backgroundShell);
+      fflush(stdout);
+      return 0;
+    }
+  }
+  else
+  {
+    // if foreground process
+    executeAllPipelines(command, env, initialDirectory, &laststatus);
+    return laststatus;
+  }
+}
+
+int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory, bool isBackground)
 {
   int pipelineComponentCount = pipeline->components->size;
   int pipeCount = pipelineComponentCount - 1;
@@ -52,14 +87,20 @@ int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory)
     }
   }
 
+  // set up pipes for IPC
   for (int i = 0; i < pipeCount; i++)
   {
     pipe(fds[i]);
   }
 
+  int processGroup = INT_MIN;
   for (int i = 0; i < pipelineComponentCount; i++)
   {
-    int status = executePipelineComponent(pipeline->components->data[i], env, fds, pipeCount, i, pids, initialDirectory);
+    int status = executePipelineComponent(pipeline->components->data[i], env, fds, pipeCount, i, pids, initialDirectory, &processGroup, isBackground);
+    if (i == 0 && !isBackground) // if not background then we can take terminal control
+      if (processGroup != INT_MIN)
+        tcsetpgrp(STDIN_FILENO, processGroup); // the process group gets the access of the terminal control
+
     if (status == -1)
     {
       killPids(0, i, pids); // kill all the processes till now if pipeline creation failed
@@ -72,47 +113,35 @@ int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory)
   closePipes(fds, pipeCount);
 
   int pipelineStatus = 0;
-  for (int i = 0; i < pipelineComponentCount; i++)
+  int processGroupStatus = 0;
+  int last_status = 0;
+  // wait for child processes
+  for (int j = 0; j < pipelineComponentCount; ++j)
   {
-    if (pids[i] == -1) // if not a valid child process or did not fork
+    if (pids[j] == -1)
       continue;
 
-    int processStatus = 0;
-    // in case it's interrupted by a interrupt the waitpid sys call won't be restarted
-    // as SA_RESTART in SIGINT handling is 0 so we manually restart it
-    while (waitpid(pids[i], &processStatus, 0) == -1)
+    pid_t w;
+    int s;
+    // if interrupted by random signal restart again
+    while ((w = waitpid(pids[j], &s, 0)) == -1 && errno == EINTR)
+      ;
+    if (w == pids[j])
     {
-      if (errno == EINTR)
-        continue; // interrupted by signal, retry
-      else
-        break; // real error, stop
-    }
-
-    if (i == pipelineComponentCount - 1)
-    {
-      if (WIFEXITED(processStatus))
-      {
-        pipelineStatus = WEXITSTATUS(processStatus); // 0 = success
-      }
-      else if (WIFSIGNALED(processStatus))
-      {
-        pipelineStatus = WTERMSIG(processStatus);
-        killPids(i, pipelineComponentCount, pids);
-        enableRawMode();
-        return pipelineStatus; // ^C interrupted the process
-      }
-      else
-      {
-        pipelineStatus = -1;
-      }
+      if (WIFEXITED(s))
+        last_status = WEXITSTATUS(s);
+      else if (WIFSIGNALED(s))
+        last_status = 128 + WTERMSIG(s); // or whatever policy you want
     }
   }
-  
+
+  if (!isBackground) // if background process, don't reclaim the terminal control
+    tcsetpgrp(STDIN_FILENO, getpid());
   enableRawMode();
   return pipelineStatus;
 }
 
-int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], int pipeCount, int i, int pids[], char *initialDirectory)
+int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], int pipeCount, int i, int pids[], char *initialDirectory, int *processGroup, bool isBackground)
 {
   Token **tokens = pc->tokens->data;
   int tokensLen = pc->tokens->size;
@@ -121,6 +150,7 @@ int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], i
   char *infile = NULL;
   char *outfile = NULL;
   int commandEnd = tokensLen;
+  // from the given pipeline component find it's infile or outfile if any
   findInOutFileAndCommandEnd(pc, &infile, &outfile, &commandEnd);
   int parentRetValue = 0;
 
@@ -149,6 +179,7 @@ int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], i
 
   // printf("commandEnd: %d - infile: %s, outfile: %s\n========\n", commandEnd, infile, outfile);
 
+  // get the args in the pipeline component to give to execve
   char **args = malloc(sizeof(char *) * (commandEnd + 1));
   if (!args)
   {
@@ -168,7 +199,7 @@ int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], i
     goto closeFiles;
   }
 
-  int pid = fork();
+  pid_t pid = fork();
   if (pid == -1)
   {
     free(args);
@@ -176,12 +207,17 @@ int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], i
     parentRetValue = -1;
     goto closeFiles;
   }
-
-  pids[i] = pid;
-
-  if (pid == 0)
+  else if (pid == 0)
   {
-    disableRawMode();
+    if (*processGroup == INT_MIN) // first process in the pipeline
+    {
+      setpgid(0, 0);
+    }
+    else
+      setpgid(0, *processGroup); // following processes added to previous group
+
+    if (!isBackground) // background processes won't have access to terminal
+      disableRawMode();
     signal(SIGINT, SIG_DFL);
 
     int exitError = 0;
@@ -196,7 +232,6 @@ int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], i
         goto exitChild;
       }
     }
-
     if (outfile)
     {
       int status = dup2(outfilefd, STDOUT_FILENO);
@@ -228,7 +263,7 @@ int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], i
     }
 
   exitChild:
-    // close all pipes
+    // close all pipes as necessary ones are already duped above
     closePipes(fds, pipeCount);
 
     // close the files if opened
@@ -302,13 +337,27 @@ int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], i
     free(args);
     _exit(126); // command found but couldn't execute
   }
+  else // parent
+  {
+    // from the parent side also set up the process group to avoid race condition
+    if (*processGroup == INT_MIN)
+    {
+      setpgid(pid, pid);
+      *processGroup = pid;
+    }
+    else
+    {
+      setpgid(pid, *processGroup);
+    }
+    // give the parent the process id of the child
+    pids[i] = pid;
+  closeFiles:
+    // parent closing all infiles/outfiles it opened
+    if (infile && infilefd != -1)
+      close(infilefd);
+    if (outfile && outfilefd != -1)
+      close(outfilefd);
 
-closeFiles:
-  // parent closing all infiles/outfiles it opened
-  if (infile && infilefd != -1)
-    close(infilefd);
-  if (outfile && outfilefd != -1)
-    close(outfilefd);
-
-  return parentRetValue;
+    return parentRetValue;
+  }
 }

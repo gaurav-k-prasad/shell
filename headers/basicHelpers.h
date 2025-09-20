@@ -98,6 +98,15 @@ bool isBuiltin(char *command);
 bool isMyImplementedBuiltin(char *command);
 
 /**
+ * @brief Checks if the given token is '&'
+ *
+ * @param input
+ * @return true
+ * @return false
+ */
+bool isBackground(Token *input);
+
+/**
  * @brief checks if given token is a semicolon
  *
  * @param input

@@ -9,14 +9,20 @@ int main(int argc, char const *argv[], char *envp[])
   (void)argv;
 
   struct sigaction sa;
-  sa.sa_handler = handleSignal;           // Set the handler function.
-  sa.sa_flags = 0;                        // Clear the flags. Crucially, this ensures SA_RESTART is OFF.
-  sigemptyset(&sa.sa_mask);               // Block other signals while the handler is running.
-  if (sigaction(SIGINT, &sa, NULL) == -1) // Register the signal handler using sigaction().
-  {
-    perror("sigaction");
-    exit(EXIT_FAILURE);
-  }
+  sa.sa_sigaction = handleSignal;
+  sa.sa_flags = SA_SIGINFO;
+  sigemptyset(&sa.sa_mask);
+
+  sigaction(SIGINT, &sa, NULL);
+  sigaction(SIGCHLD, &sa, NULL);
+
+  /**
+   * Whenever a child terminal is created by forking this process it inherits the stdout of this process
+   * In that case whenever the command like ls & tries to write in the child terminal it inherently is trying
+   * to write in the main/parent terminal which will be blocked until we ignore teh SIGTTOU
+   * SIGTTOU - Signal Terminal Output for Background Process.
+   */
+  signal(SIGTTOU, SIG_IGN); // so background writes don’t stop
 
   shellLoop(envp);
   return 0;
