@@ -85,8 +85,10 @@ void closePipes(int fds[][2], int n);
  * @param infile reference to input file
  * @param outfile reference to output file
  * @param commandEnd reference to integer of commandend
+ *
+ * @return isAppendWrite: if outfile exists and the mode is append then true else false
  */
-void findInOutFileAndCommandEnd(
+bool findInOutFileAndCommandEnd(
     PipelineComponent *pc, char **infile, char **outfile, int *commandEnd);
 
 /**

@@ -151,8 +151,10 @@ int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], i
   char *outfile = NULL;
   int commandEnd = tokensLen;
   // from the given pipeline component find it's infile or outfile if any
-  findInOutFileAndCommandEnd(pc, &infile, &outfile, &commandEnd);
+  bool isAppendOutputFile = findInOutFileAndCommandEnd(pc, &infile, &outfile, &commandEnd);
   int parentRetValue = 0;
+  printf(">>%d", commandEnd);
+  fflush(stdout);
 
   int infilefd = -1;
   int outfilefd = -1;
@@ -168,7 +170,8 @@ int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], i
   }
   if (outfile)
   {
-    outfilefd = open(outfile, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+    int fileOpenMode = isAppendOutputFile ? O_WRONLY | O_CREAT | O_APPEND : O_WRONLY | O_CREAT | O_TRUNC;
+    outfilefd = open(outfile, fileOpenMode, 0666);
     if (outfilefd == -1)
     {
       perror("open");
@@ -187,8 +190,10 @@ int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], i
     goto closeFiles;
   }
 
-  for (int i = 0; i < commandEnd; i++)
+  for (int i = 0; i < commandEnd; i++) {
+    printf("-%s-\n", tokens[i]->token);
     args[i] = tokens[i]->token;
+  }
   args[commandEnd] = NULL;
 
   // if it's the only builtin then execute it. no need to fork

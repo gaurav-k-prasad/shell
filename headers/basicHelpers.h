@@ -152,6 +152,15 @@ bool isLt(Token *input);
 bool isGt(Token *input);
 
 /**
+ * @brief Tells if the operator is >> or not
+ * 
+ * @param input Token * reference
+ * @return true 
+ * @return false 
+ */
+bool isAppend(Token *input);
+
+/**
  * @brief is the given token a delimiter: like ; or && or || or < or >
  *
  * @param token given token

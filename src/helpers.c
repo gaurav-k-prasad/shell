@@ -5,7 +5,9 @@ void handleSignal(int sig, siginfo_t *info, void *ucontext)
   if (sig == SIGINT)
   {
     write(STDOUT_FILENO, "^C\n", 3);
-  } else if (sig == SIGCHLD) {
+  }
+  else if (sig == SIGCHLD)
+  {
     waitpid(-1, NULL, WNOHANG); // reap the child process
   }
 }
@@ -178,6 +180,11 @@ bool isBuiltin(char *command)
   return false;
 }
 
+bool isAppend(Token *input)
+{
+  return (input->isOperator && strcmp(input->token, ">>") == 0);
+}
+
 int handleBuiltin(char **args, char ***env, char *initialDirectory)
 {
   if (myStrcmp(args[0], "export") == 0)
@@ -254,9 +261,10 @@ void closePipes(int fds[][2], int n)
   }
 }
 
-void findInOutFileAndCommandEnd(PipelineComponent *pc, char **infile, char **outfile, int *commandEnd)
+bool findInOutFileAndCommandEnd(PipelineComponent *pc, char **infile, char **outfile, int *commandEnd)
 {
   Token **tokens = pc->tokens->data;
+  bool isAppendOutputFile = false;
 
   if (pc->isLt)
   {
@@ -281,10 +289,19 @@ void findInOutFileAndCommandEnd(PipelineComponent *pc, char **infile, char **out
       {
         *outfile = tokens[i + 1]->token;
         *commandEnd = MIN(*commandEnd, i);
+        isAppendOutputFile = false;
+      }
+      else if (isAppend(tokens[i]))
+      {
+        *outfile = tokens[i + 1]->token;
+        *commandEnd = MIN(*commandEnd, i);
+        isAppendOutputFile = true;
       }
       i++;
     }
   }
+
+  return isAppendOutputFile;
 }
 
 Token *createToken(char *str, int len, bool isOperator, int capacity)
@@ -460,7 +477,7 @@ Commands *createCommands()
 
 bool isDelimiter(Token *token)
 {
-  return (isPipe(token) || isLogicalOp(token) || isSemicolon(token) || (isLt(token) && token->isOperator) || (isGt(token) && token->isOperator));
+  return (isPipe(token) || isLogicalOp(token) || isSemicolon(token) || (isLt(token) && token->isOperator) || (isGt(token) && token->isOperator) || (isAppend(token) && token->isOperator));
 }
 
 void freeToken(Token *token)

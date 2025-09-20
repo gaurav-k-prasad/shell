@@ -268,7 +268,7 @@ Commands *splitCommands(VectorToken *tokenVec)
   {
     Token *token = allTokens[i];
 
-    if (isLt(token) || isGt(token))
+    if (isLt(token) || isGt(token) || isAppend(token))
     {
       Token *nextToken = allTokens[i + 1];
       if (!pc || nextToken == NULL || isDelimiter(nextToken))
@@ -403,7 +403,7 @@ Commands *splitCommands(VectorToken *tokenVec)
 
     if (isLt(token))
       pc->isLt = true;
-    if (isGt(token))
+    if (isGt(token) || isAppend(token))
       pc->isGt = true;
 
     int copyTokenLen = myStrlen(token->token);
@@ -458,7 +458,7 @@ Commands *splitCommands(VectorToken *tokenVec)
     }
   }
 
-  /* for (int i = 0; i < ac->commands->size; i++)
+  for (int i = 0; i < ac->commands->size; i++)
   {
     Command *currCommand = ac->commands->data[i];
 
@@ -478,7 +478,7 @@ Commands *splitCommands(VectorToken *tokenVec)
       printf("----\n");
     }
     printf("--------\n");
-  } */
+  }
 
   return ac;
 
