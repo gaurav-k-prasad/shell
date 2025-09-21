@@ -14,11 +14,13 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <termios.h>
+#include <sys/ioctl.h>
 
 #define MAX(A, B) (A > B) ? A : B
 #define MIN(A, B) (A < B) ? A : B
 #define RIGHT "\033[C"
 #define LEFT "\033[D"
+#define PROMPT "$ "
 
 #ifdef _WIN32
 #include <windows.h>

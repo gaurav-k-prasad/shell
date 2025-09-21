@@ -1,5 +1,7 @@
 #include "../headers/myshell.h"
 
+int termCols;              // tells about the columns in the terminal (width of column)
+int whichSignal = INT_MIN; // initiate it with invalid signal
 struct termios orig_termios;
 void shellLoop(char **env);
 
@@ -15,6 +17,7 @@ int main(int argc, char const *argv[], char *envp[])
 
   sigaction(SIGINT, &sa, NULL);
   sigaction(SIGCHLD, &sa, NULL);
+  sigaction(SIGWINCH, &sa, NULL);
 
   /**
    * Whenever a child terminal is created by forking this process it inherits the stdout of this process
@@ -23,6 +26,11 @@ int main(int argc, char const *argv[], char *envp[])
    * SIGTTOU - Signal Terminal Output for Background Process.
    */
   signal(SIGTTOU, SIG_IGN); // so background writes don’t stop
+
+  struct winsize w;
+  ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+  termCols = w.ws_col;
+  printf("%d\n", termCols);
 
   shellLoop(envp);
   return 0;

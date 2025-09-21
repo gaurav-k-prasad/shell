@@ -18,6 +18,22 @@ void handleSignal(int sig, siginfo_t *info, void *ucontext);
 void printShellStart(char **env, char *userName);
 
 /**
+ * @brief clears text till len length
+ *
+ * @param len how many characters to clear
+ */
+void clearText(int len);
+
+/**
+ * @brief Rewrites the input buffer in non canonical mode in the buffer with yellow color
+ *
+ * @param buffer buffer array
+ * @param length length of buffer array to be printed
+ * @param cursorPosition current position of cursor
+ */
+void rewriteBufferOnTerminal(char *buffer, int length);
+
+/**
  * @brief Get the Full Path Of given command
  * @warning Free required
  *

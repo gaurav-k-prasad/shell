@@ -1,5 +1,7 @@
 #include "../headers/myshell.h"
 
+extern int termCols;    // tells about the columns in the terminal (width of column)
+extern int whichSignal; // tells which signal did we encounter
 extern struct termios orig_termios;
 
 void enableRawMode()
@@ -27,14 +29,6 @@ void disableRawMode()
   }
 }
 
-void clearText(int len)
-{
-  for (int i = 0; i < len; i++)
-  {
-    write(STDOUT_FILENO, "\b \b", 3);
-  }
-}
-
 char *getInputString(ForgettingDoublyLinkedList *history)
 {
   char *buffer = NULL;
@@ -59,6 +53,11 @@ char *getInputString(ForgettingDoublyLinkedList *history)
       if (errno == EINTR) // EINTR means the function was interrupted by a signal!
       {
         clearerr(stdin);
+        if (whichSignal == SIGWINCH)
+        {
+          whichSignal = INT_MIN;
+          continue;
+        }
         return NULL;
       }
       else
@@ -66,6 +65,14 @@ char *getInputString(ForgettingDoublyLinkedList *history)
         perror("getline");
         exit(EXIT_FAILURE);
       }
+    }
+    else if (termCols < 0) // means needs handling as there's sigwinch
+    {
+      // reset termCols
+      termCols = -termCols;
+      clearText(lastPosition);
+      rewriteBufferOnTerminal(buffer, lastPosition);
+      continue;
     }
     else if (nread == 0) // means no reading done
     {
@@ -116,7 +123,7 @@ char *getInputString(ForgettingDoublyLinkedList *history)
 
           // update the buffer with new history string
           myStrcpy(buffer, currentHistory->command);
-          write(STDOUT_FILENO, buffer, len);
+          rewriteBufferOnTerminal(buffer, lastPosition);
         }
         else if (history->size > 0 && seq[1] == 'B') // Down key or next history
         {
@@ -140,19 +147,30 @@ char *getInputString(ForgettingDoublyLinkedList *history)
 
             // update the buffer with new history string
             myStrcpy(buffer, currentHistory->command);
-            write(STDOUT_FILENO, buffer, len);
+            rewriteBufferOnTerminal(buffer, lastPosition);
           }
         }
         else if (currPosition < lastPosition && seq[1] == 'C') // Left key
         {
           // go right
           write(STDOUT_FILENO, RIGHT, 3);
+          if ((myStrlen(PROMPT) + currPosition) % termCols == 0)
+          {
+            printf("\r\033[1B");
+            fflush(stdout);
+          }
           currPosition++;
         }
         else if (currPosition > 0 && seq[1] == 'D') // Right key
         {
           // go left
           write(STDOUT_FILENO, LEFT, 3);
+          if ((myStrlen(PROMPT) + currPosition) % termCols == 1)
+          {
+            printf("\033[1A");
+            printf("\033[%dG", termCols);
+            fflush(stdout);
+          }
           currPosition--;
         }
         else if (seq[1] == '1' && seq[2] == ';' && seq[3] == '5') // if control + arrow keys
@@ -212,7 +230,7 @@ char *getInputString(ForgettingDoublyLinkedList *history)
         lastPosition--;
         currPosition--;
         // write the buffer command
-        write(STDOUT_FILENO, buffer, lastPosition);
+        rewriteBufferOnTerminal(buffer, lastPosition);
         // reposition the cursor to where it was before
         for (int i = lastPosition; i > currPosition; i--)
           printf(LEFT);
@@ -246,7 +264,7 @@ char *getInputString(ForgettingDoublyLinkedList *history)
       lastPosition -= removedCount;
       currPosition -= removedCount;
       // write the buffer command
-      write(STDOUT_FILENO, buffer, lastPosition);
+      rewriteBufferOnTerminal(buffer, lastPosition);
       // reposition the cursor to where it was before
       for (int i = lastPosition; i > currPosition; i--)
         printf(LEFT);
@@ -274,7 +292,7 @@ char *getInputString(ForgettingDoublyLinkedList *history)
       lastPosition++;
       currPosition++;
       // Write new command
-      write(STDOUT_FILENO, buffer, lastPosition);
+      rewriteBufferOnTerminal(buffer, lastPosition);
 
       // reposition the cursor
       for (int i = lastPosition; i > currPosition; i--)

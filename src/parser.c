@@ -458,7 +458,7 @@ Commands *splitCommands(VectorToken *tokenVec)
     }
   }
 
-  for (int i = 0; i < ac->commands->size; i++)
+  /* for (int i = 0; i < ac->commands->size; i++)
   {
     Command *currCommand = ac->commands->data[i];
 
@@ -478,7 +478,7 @@ Commands *splitCommands(VectorToken *tokenVec)
       printf("----\n");
     }
     printf("--------\n");
-  }
+  } */
 
   return ac;
 

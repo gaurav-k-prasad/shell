@@ -153,7 +153,6 @@ int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], i
   // from the given pipeline component find it's infile or outfile if any
   bool isAppendOutputFile = findInOutFileAndCommandEnd(pc, &infile, &outfile, &commandEnd);
   int parentRetValue = 0;
-  printf(">>%d", commandEnd);
   fflush(stdout);
 
   int infilefd = -1;
@@ -191,7 +190,6 @@ int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], i
   }
 
   for (int i = 0; i < commandEnd; i++) {
-    printf("-%s-\n", tokens[i]->token);
     args[i] = tokens[i]->token;
   }
   args[commandEnd] = NULL;

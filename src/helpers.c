@@ -1,14 +1,27 @@
 #include "../headers/myshell.h"
 
+extern int termCols;
+extern int whichSignal;
+
 void handleSignal(int sig, siginfo_t *info, void *ucontext)
 {
   if (sig == SIGINT)
   {
     write(STDOUT_FILENO, "^C\n", 3);
+    whichSignal = SIGINT;
   }
   else if (sig == SIGCHLD)
   {
     waitpid(-1, NULL, WNOHANG); // reap the child process
+    whichSignal = SIGCHLD;
+  }
+  else if (sig == SIGWINCH)
+  {
+    struct winsize w;
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+    termCols = -w.ws_col; // negative indicates that it needs to be handled
+    // printf("%d\n", -termCols);
+    whichSignal = SIGWINCH;
   }
 }
 
@@ -18,11 +31,41 @@ void printShellStart(char **env, char *userName)
   getcwd(cwd, sizeof(cwd));
 
   if (userName)
-    sprintf(line, "\033[36m@%s\033[0m \033[32m[%s]> \033[0m", userName, cwd);
+    sprintf(line, "\033[36m@%s\033[0m \033[32m[%s]> \033[0m\n%s", userName, cwd, PROMPT);
   else
-    sprintf(line, "\033[32m[%s]> \033[0m", cwd); // ANSI format coloring
+    sprintf(line, "\033[32m[%s]> \033[0m\n%s", cwd, PROMPT); // ANSI format coloring
 
   write(STDOUT_FILENO, line, myStrlen(line));
+}
+
+void clearText(int len)
+{
+  int numberOfLinesToClear = ((len + myStrlen(PROMPT)) / termCols) + 1;
+
+  for (int i = 0; i < numberOfLinesToClear; i++)
+  {
+    printf("\033[2K\r");
+    printf("\033[1A");
+    fflush(stdout);
+  }
+  printf("\033[1B");
+  printf(PROMPT);
+  fflush(stdout);
+}
+
+void rewriteBufferOnTerminal(char *buffer, int length)
+{
+  printf("\033[33m"); // yellow color
+  fflush(stdout);
+  write(STDOUT_FILENO, buffer, length);
+  printf("\033[0m"); // reset color
+  fflush(stdout);
+  // printf("%d, %d\n", length, termCols);
+  if ((myStrlen(PROMPT) + length) % termCols == 0)
+  {
+    printf("\033[1B\r");
+    fflush(stdout);
+  }
 }
 
 int myStrcmp(const char *a, const char *b)

@@ -16,13 +16,6 @@ void enableRawMode();
 void disableRawMode();
 
 /**
- * @brief clears text till len length
- *
- * @param len how many characters to clear
- */
-void clearText(int len);
-
-/**
  * @brief Get the Input String from the terminal
  *
  * @param ForgettingDoublyLinkedList reference history

@@ -22,6 +22,7 @@
     "termios.h": "c",
     "forgettingcirculararray.h": "c",
     "termbits.h": "c",
-    "forgettingdll.h": "c"
+    "forgettingdll.h": "c",
+    "ioctl.h": "c"
   }
 }
