@@ -1,7 +1,7 @@
 #include "../headers/myshell.h"
 
-extern int termCols;    // tells about the columns in the terminal (width of column)
-extern int whichSignal; // tells which signal did we encounter
+extern int termCols, prevTermCols; // tells about the columns in the terminal (width of column)
+extern int whichSignal;            // tells which signal did we encounter
 extern struct termios orig_termios;
 
 void enableRawMode()
@@ -70,25 +70,22 @@ char *getInputString(ForgettingDoublyLinkedList *history)
     {
       // reset termCols
       termCols = -termCols;
-      clearText(lastPosition);
-      rewriteBufferOnTerminal(buffer, lastPosition);
+      seek(currPosition, lastPosition);
+      clearText(currPosition);
+      writeBufferOnTerminal(buffer, lastPosition);
+      seek(lastPosition, currPosition);
       continue;
     }
     else if (nread == 0) // means no reading done
     {
       continue;
     }
-    else if (c == '\n') // return the string
+    else if (c == '\n' || c == EOF || c == 4) // return the string and 4 is EOT(ASCII) for Ctrl+D
     {
       write(STDOUT_FILENO, "\n", 1);
       break;
     }
-    else if (c == EOF || c == 4) // 4 is EOT(ASCII) for Ctrl+D
-    {
-      write(STDOUT_FILENO, "\n", 1);
-      break;
-    }
-    else if (c == 12 || c == 13 || c == 11) //  Ctrl + L   Ctrl + M   Ctrl + K
+    else if (c == 12 || c == 13 || c == 11 || c == 9) //  Ctrl + L   Ctrl + M   Ctrl + K   \t
     {
       continue;
     }
@@ -104,6 +101,8 @@ char *getInputString(ForgettingDoublyLinkedList *history)
         if (history->size > 0 && seq[1] == 'A') // Up key or Previous history
         {
           // clear previous text on terminal
+          seek(currPosition, lastPosition);
+          prevTermCols = termCols;
           clearText(lastPosition);
 
           if (!currentHistory)
@@ -123,11 +122,14 @@ char *getInputString(ForgettingDoublyLinkedList *history)
 
           // update the buffer with new history string
           myStrcpy(buffer, currentHistory->command);
-          rewriteBufferOnTerminal(buffer, lastPosition);
+          writeBufferOnTerminal(buffer, lastPosition);
+          seek(lastPosition, currPosition);
         }
         else if (history->size > 0 && seq[1] == 'B') // Down key or next history
         {
           // clear previous text on terminal
+          seek(currPosition, lastPosition);
+          prevTermCols = termCols;
           clearText(lastPosition);
 
           currentHistory = getNextNode(currentHistory);
@@ -147,29 +149,37 @@ char *getInputString(ForgettingDoublyLinkedList *history)
 
             // update the buffer with new history string
             myStrcpy(buffer, currentHistory->command);
-            rewriteBufferOnTerminal(buffer, lastPosition);
+            writeBufferOnTerminal(buffer, lastPosition);
+            seek(lastPosition, currPosition);
           }
         }
-        else if (currPosition < lastPosition && seq[1] == 'C') // Left key
+        else if (currPosition < lastPosition && seq[1] == 'C') // Right key
         {
           // go right
-          write(STDOUT_FILENO, RIGHT, 3);
-          if ((myStrlen(PROMPT) + currPosition) % termCols == 0)
+          if ((myStrlen(PROMPT) + currPosition + 1) % termCols == 0)
           {
-            printf("\r\033[1B");
+            printf(DOWN);
+            printf("\r"); // go to start
             fflush(stdout);
+          }
+          else
+          {
+            write(STDOUT_FILENO, RIGHT, 3);
           }
           currPosition++;
         }
-        else if (currPosition > 0 && seq[1] == 'D') // Right key
+        else if (currPosition > 0 && seq[1] == 'D') // Left key
         {
           // go left
-          write(STDOUT_FILENO, LEFT, 3);
-          if ((myStrlen(PROMPT) + currPosition) % termCols == 1)
+          if ((myStrlen(PROMPT) + currPosition) % termCols == 0)
           {
-            printf("\033[1A");
-            printf("\033[%dG", termCols);
+            printf(UP);
+            printf("\033[%dG", termCols); // goto last column
             fflush(stdout);
+          }
+          else
+          {
+            write(STDOUT_FILENO, LEFT, 3);
           }
           currPosition--;
         }
@@ -177,39 +187,11 @@ char *getInputString(ForgettingDoublyLinkedList *history)
         {
           if (seq[4] == 'D') // Arrow Left
           {
-            int leftPos = currPosition;
-            // go past spaces
-            while (leftPos > 0 && buffer[leftPos - 1] == ' ')
-            {
-              printf(LEFT);
-              leftPos--;
-            }
-            // go past letters
-            while (leftPos > 0 && buffer[leftPos - 1] != ' ')
-            {
-              printf(LEFT);
-              leftPos--;
-            }
-            fflush(stdout);
-            currPosition = leftPos;
+            continue; // not implemented
           }
           else if (seq[4] == 'C') // Arrow right
           {
-            int rightPos = currPosition;
-            // go past spaces
-            while (rightPos < lastPosition && buffer[rightPos] == ' ')
-            {
-              printf(RIGHT);
-              rightPos++;
-            }
-            // go past letters
-            while (rightPos < lastPosition && buffer[rightPos] != ' ')
-            {
-              printf(RIGHT);
-              rightPos++;
-            }
-            fflush(stdout);
-            currPosition = rightPos;
+            continue; // not implemented
           }
         }
       }
@@ -221,20 +203,17 @@ char *getInputString(ForgettingDoublyLinkedList *history)
         for (int i = currPosition; i < lastPosition; i++)
         {
           buffer[i - 1] = buffer[i];
-          // going right coz we have to reach the end of the string to delete all the characters at once
-          printf(RIGHT);
         }
-        fflush(stdout);
+        seek(currPosition, lastPosition);
         // clear the command
+        prevTermCols = termCols;
         clearText(lastPosition);
         lastPosition--;
         currPosition--;
         // write the buffer command
-        rewriteBufferOnTerminal(buffer, lastPosition);
+        writeBufferOnTerminal(buffer, lastPosition);
         // reposition the cursor to where it was before
-        for (int i = lastPosition; i > currPosition; i--)
-          printf(LEFT);
-        fflush(stdout);
+        seek(lastPosition, currPosition);
       }
     }
     else if (c == 23)
@@ -255,24 +234,17 @@ char *getInputString(ForgettingDoublyLinkedList *history)
       for (int i = currPosition; i < lastPosition; i++)
       {
         buffer[leftPos++] = buffer[i];
-        // going right coz we have to reach the end of the string to delete all the characters at once
-        printf(RIGHT);
       }
-      fflush(stdout);
+
+      seek(currPosition, lastPosition);
       // clear the command
+      prevTermCols = termCols;
       clearText(lastPosition);
       lastPosition -= removedCount;
       currPosition -= removedCount;
       // write the buffer command
-      rewriteBufferOnTerminal(buffer, lastPosition);
-      // reposition the cursor to where it was before
-      for (int i = lastPosition; i > currPosition; i--)
-        printf(LEFT);
-      fflush(stdout);
-    }
-    else if (c == 9) // tab character
-    {
-      continue; // not implemented yet
+      writeBufferOnTerminal(buffer, lastPosition);
+      seek(lastPosition, currPosition);
     }
     else
     {
@@ -280,24 +252,22 @@ char *getInputString(ForgettingDoublyLinkedList *history)
       for (int i = lastPosition; i > currPosition; i--)
       {
         buffer[i] = buffer[i - 1];
-        printf(RIGHT);
       }
-      fflush(stdout);
 
       // add new character
       buffer[currPosition] = c;
 
+      seek(currPosition, lastPosition);
       // clear current command
+      prevTermCols = termCols;
       clearText(lastPosition);
       lastPosition++;
       currPosition++;
       // Write new command
-      rewriteBufferOnTerminal(buffer, lastPosition);
+      writeBufferOnTerminal(buffer, lastPosition);
 
       // reposition the cursor
-      for (int i = lastPosition; i > currPosition; i--)
-        printf(LEFT);
-      fflush(stdout);
+      seek(lastPosition, currPosition);
     }
 
     // Resize buffer if it's full

@@ -1,5 +1,6 @@
 #include "../headers/myshell.h"
 
+extern int prevTermCols;
 extern int termCols;
 extern int whichSignal;
 
@@ -19,8 +20,8 @@ void handleSignal(int sig, siginfo_t *info, void *ucontext)
   {
     struct winsize w;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+    prevTermCols = termCols;
     termCols = -w.ws_col; // negative indicates that it needs to be handled
-    // printf("%d\n", -termCols);
     whichSignal = SIGWINCH;
   }
 }
@@ -40,20 +41,49 @@ void printShellStart(char **env, char *userName)
 
 void clearText(int len)
 {
-  int numberOfLinesToClear = ((len + myStrlen(PROMPT)) / termCols) + 1;
+  int numberOfLinesToClear = ((len + myStrlen(PROMPT)) / prevTermCols) + 1;
 
   for (int i = 0; i < numberOfLinesToClear; i++)
   {
-    printf("\033[2K\r");
-    printf("\033[1A");
+    printf(CLEAR_LINE);
+    printf(UP);
     fflush(stdout);
   }
-  printf("\033[1B");
+  printf(DOWN);
   printf(PROMPT);
   fflush(stdout);
 }
 
-void rewriteBufferOnTerminal(char *buffer, int length)
+void seek(int currPosition, int seekPosition)
+{
+  int absCurrLen = (currPosition + myStrlen(PROMPT));
+  int absSeekLen = (seekPosition + myStrlen(PROMPT));
+  int currPosLineNumber = absCurrLen / termCols;
+  int seekPosLineNumber = absSeekLen / termCols;
+  int nRights = absSeekLen % termCols;
+
+  if (seekPosition > currPosition)
+  {
+    for (int i = currPosLineNumber; i < seekPosLineNumber; i++)
+    {
+      printf(DOWN);
+    }
+    printf("\r");
+    printf("\033[%dG", nRights+1);
+  }
+  else if (seekPosition < currPosition)
+  {
+    for (int i = currPosLineNumber; i > seekPosLineNumber; i--)
+    {
+      printf(UP);
+    }
+    printf("\r");
+    printf("\033[%dG", nRights+1);
+  }
+  fflush(stdout);
+}
+
+void writeBufferOnTerminal(char *buffer, int length)
 {
   printf("\033[33m"); // yellow color
   fflush(stdout);
@@ -63,7 +93,7 @@ void rewriteBufferOnTerminal(char *buffer, int length)
   // printf("%d, %d\n", length, termCols);
   if ((myStrlen(PROMPT) + length) % termCols == 0)
   {
-    printf("\033[1B\r");
+    printf("\n\r");
     fflush(stdout);
   }
 }

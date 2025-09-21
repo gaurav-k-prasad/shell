@@ -18,6 +18,14 @@ void handleSignal(int sig, siginfo_t *info, void *ucontext);
 void printShellStart(char **env, char *userName);
 
 /**
+ * @brief Gets the caret position from currPosition to seekPosition in a buffer based on size of terminal
+ * 
+ * @param currPosition 
+ * @param seekPosition 
+ */
+void seek(int currPosition, int seekPosition);
+
+/**
  * @brief clears text till len length
  *
  * @param len how many characters to clear
@@ -25,13 +33,13 @@ void printShellStart(char **env, char *userName);
 void clearText(int len);
 
 /**
- * @brief Rewrites the input buffer in non canonical mode in the buffer with yellow color
+ * @brief writes the input buffer in non canonical mode in the buffer with yellow color
  *
  * @param buffer buffer array
  * @param length length of buffer array to be printed
  * @param cursorPosition current position of cursor
  */
-void rewriteBufferOnTerminal(char *buffer, int length);
+void writeBufferOnTerminal(char *buffer, int length);
 
 /**
  * @brief Get the Full Path Of given command

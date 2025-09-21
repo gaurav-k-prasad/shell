@@ -1,7 +1,7 @@
 #include "../headers/myshell.h"
 
-int termCols;              // tells about the columns in the terminal (width of column)
-int whichSignal = INT_MIN; // initiate it with invalid signal
+int termCols, prevTermCols;                  // tells about the columns in the terminal (width of column)
+volatile sig_atomic_t whichSignal = INT_MIN; // initiate it with invalid signal
 struct termios orig_termios;
 void shellLoop(char **env);
 
@@ -30,7 +30,7 @@ int main(int argc, char const *argv[], char *envp[])
   struct winsize w;
   ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
   termCols = w.ws_col;
-  printf("%d\n", termCols);
+  prevTermCols = w.ws_col;
 
   shellLoop(envp);
   return 0;

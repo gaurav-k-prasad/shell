@@ -20,6 +20,10 @@
 #define MIN(A, B) (A < B) ? A : B
 #define RIGHT "\033[C"
 #define LEFT "\033[D"
+#define UP "\033[1A"
+#define DOWN "\033[1B"
+#define CLEAR_LINE "\033[2K\r"
+
 #define PROMPT "$ "
 
 #ifdef _WIN32
