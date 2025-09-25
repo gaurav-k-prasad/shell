@@ -1,6 +1,5 @@
 #include "../headers/myshell.h"
 
-extern int prevTermCols;
 extern int termCols;
 extern int whichSignal;
 
@@ -20,7 +19,7 @@ void handleSignal(int sig, siginfo_t *info, void *ucontext)
   {
     struct winsize w;
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-    prevTermCols = termCols;
+    // prevTermCols = termCols;
     termCols = -w.ws_col; // negative indicates that it needs to be handled
     whichSignal = SIGWINCH;
   }
@@ -39,9 +38,9 @@ void printShellStart(char **env, char *userName)
   write(STDOUT_FILENO, line, myStrlen(line));
 }
 
-void clearText(int len)
+void clearText(int len, int termCols)
 {
-  int numberOfLinesToClear = ((len + myStrlen(PROMPT)) / prevTermCols) + 1;
+  int numberOfLinesToClear = ((len + myStrlen(PROMPT)) / termCols) + 1;
 
   for (int i = 0; i < numberOfLinesToClear; i++)
   {
@@ -54,7 +53,7 @@ void clearText(int len)
   fflush(stdout);
 }
 
-void seek(int currPosition, int seekPosition)
+void seek(int currPosition, int seekPosition, int termCols)
 {
   int absCurrLen = (currPosition + myStrlen(PROMPT));
   int absSeekLen = (seekPosition + myStrlen(PROMPT));
@@ -83,14 +82,13 @@ void seek(int currPosition, int seekPosition)
   fflush(stdout);
 }
 
-void writeBufferOnTerminal(char *buffer, int length)
+void writeBufferOnTerminal(char *buffer, int length, int termCols)
 {
   printf("\033[33m"); // yellow color
   fflush(stdout);
   write(STDOUT_FILENO, buffer, length);
   printf("\033[0m"); // reset color
   fflush(stdout);
-  // printf("%d, %d\n", length, termCols);
   if ((myStrlen(PROMPT) + length) % termCols == 0)
   {
     printf("\n\r");

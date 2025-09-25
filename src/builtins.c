@@ -1,13 +1,5 @@
 #include "../headers/myshell.h"
 
-/*
- * `cd [path]`
- * `cd ..`
- * `cd .`
- $ TODO:
- * `cd ~`
- * `cd -`
-*/
 int commandCd(char **args, char *initialDirectory)
 {
   if (args[1] == NULL)
@@ -25,9 +17,6 @@ int commandCd(char **args, char *initialDirectory)
   return 0;
 }
 
-/*
- * `pwd`
- */
 int commandPwd()
 {
   char *cwd = getcwd(NULL, 0);
@@ -40,10 +29,6 @@ int commandPwd()
   return 0;
 }
 
-/*
- * echo command
- * `echo $PATH $ENV`
- */
 int commandEcho(char **args, char **env)
 {
   int printNewLine = true;
@@ -65,10 +50,6 @@ int commandEcho(char **args, char **env)
   return 0;
 }
 
-/*
- * prints enviornment variables
- * `env`
- */
 int commandEnv(char **env)
 {
   fprintf(stdout, "%-40s | %s\n", "Enviornment Variable", "Value");
@@ -101,10 +82,6 @@ int commandEnv(char **env)
   return 0;
 }
 
-/*
- * In your path variables finds the executable full path
- * `which [arg]`
- */
 int commandWhich(char **args, char **env)
 {
   if (args[1] == NULL)
@@ -138,9 +115,6 @@ int commandWhich(char **args, char **env)
   return 0;
 }
 
-/*
- * Helper function for commandWhich
- */
 char *getFullPathOfWhich(char *command, char **env)
 {
   // Locate the path enviornment variable
@@ -183,11 +157,6 @@ char *getFullPathOfWhich(char *command, char **env)
   return NULL;
 }
 
-/*
- * function to set enviornment variable
- * export VAR="VALUE"
- * export PATH="$PATH:/new/path"
- */
 int commandExport(char **args, char ***envReference)
 {
   char **env = *envReference;
@@ -281,13 +250,6 @@ int commandExport(char **args, char ***envReference)
   return 0;
 }
 
-/**
- * @brief sets the enviornment variable
- *
- * @param args arguments passed to the command
- * @param env enviornment variables
- * @return char**
- */
 int commandUnset(char **args, char ***envReference)
 {
   char **env = *envReference;
@@ -354,9 +316,6 @@ int commandUnset(char **args, char ***envReference)
   return 0;
 }
 
-/*
- * clone the env to modify to avoid changing original envs
- */
 int cloneEnv(char **env, char ***newEnvReference)
 {
   if (env == NULL)
@@ -401,9 +360,6 @@ int cloneEnv(char **env, char ***newEnvReference)
   return 0;
 }
 
-/*
- * free enviornment variables string
- */
 void freeEnv(char **env)
 {
   if (env == NULL)

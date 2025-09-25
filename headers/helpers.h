@@ -19,18 +19,20 @@ void printShellStart(char **env, char *userName);
 
 /**
  * @brief Gets the caret position from currPosition to seekPosition in a buffer based on size of terminal
- * 
- * @param currPosition 
- * @param seekPosition 
+ *
+ * @param currPosition
+ * @param seekPosition
+ * @param termCols number of columns in terminal
  */
-void seek(int currPosition, int seekPosition);
+void seek(int currPosition, int seekPosition, int termCols);
 
 /**
  * @brief clears text till len length
  *
  * @param len how many characters to clear
+ * @param termCols number of columns in terminal
  */
-void clearText(int len);
+void clearText(int len, int termCols);
 
 /**
  * @brief writes the input buffer in non canonical mode in the buffer with yellow color
@@ -38,8 +40,9 @@ void clearText(int len);
  * @param buffer buffer array
  * @param length length of buffer array to be printed
  * @param cursorPosition current position of cursor
+ * @param termCols number of columns in terminal
  */
-void writeBufferOnTerminal(char *buffer, int length);
+void writeBufferOnTerminal(char *buffer, int length, int termCols);
 
 /**
  * @brief Get the Full Path Of given command
