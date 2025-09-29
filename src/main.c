@@ -1,6 +1,6 @@
 #include "../headers/myshell.h"
 
-int termCols;                  // tells about the columns in the terminal (width of column)
+int termCols;                                // tells about the columns in the terminal (width of column)
 volatile sig_atomic_t whichSignal = INT_MIN; // initiate it with invalid signal
 struct termios orig_termios;
 void shellLoop(char **env);
@@ -60,6 +60,17 @@ void shellLoop(char **envp)
     input = getInputString(history);
     if (input == NULL)
       continue;
+
+    /*
+    char buffer[2];
+    char c;
+    int i = 0;
+    while (1) {
+      int bytes_read = read(0, &c, 1);
+      if (bytes_read == 0) continue;
+      buffer[i++] = c;
+      if (i == 2) break;
+    } */
 
     VectorToken *tokenVec = getTokens(input, env);
     if (tokenVec == NULL)

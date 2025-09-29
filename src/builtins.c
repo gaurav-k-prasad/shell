@@ -7,13 +7,13 @@ int commandCd(char **args, char *initialDirectory)
     fprintf(stderr, "expected an argument: cd [dir]\n");
     return -1;
   }
-  
+
   if (chdir(args[1]) != 0)
   {
     perror("cd");
     return -1;
   }
-  
+
   return 0;
 }
 
@@ -79,6 +79,11 @@ int commandEnv(char **env)
     free(buff);
   }
 
+  return 0;
+}
+
+int commandAI(char **args)
+{
   return 0;
 }
 

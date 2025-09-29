@@ -100,6 +100,7 @@ char *getInputString(ForgettingDoublyLinkedList *history)
           // clear previous text on terminal
           seek(currPosition, lastPosition, termCols);
           clearText(lastPosition, termCols);
+          printPrompt(PROMPT);
 
           if (!currentHistory)
           {
@@ -126,6 +127,7 @@ char *getInputString(ForgettingDoublyLinkedList *history)
           // clear previous text on terminal
           seek(currPosition, lastPosition, termCols);
           clearText(lastPosition, termCols);
+          printPrompt(PROMPT);
 
           currentHistory = getNextNode(currentHistory);
           if (!currentHistory)
@@ -202,6 +204,7 @@ char *getInputString(ForgettingDoublyLinkedList *history)
         seek(currPosition, lastPosition, termCols);
         // clear the command
         clearText(lastPosition, termCols);
+        printPrompt(PROMPT);
         lastPosition--;
         currPosition--;
         // write the buffer command
@@ -233,6 +236,7 @@ char *getInputString(ForgettingDoublyLinkedList *history)
       seek(currPosition, lastPosition, termCols);
       // clear the command
       clearText(lastPosition, termCols);
+      printPrompt(PROMPT);
       lastPosition -= removedCount;
       currPosition -= removedCount;
       // write the buffer command
@@ -253,6 +257,7 @@ char *getInputString(ForgettingDoublyLinkedList *history)
       seek(currPosition, lastPosition, termCols);
       // clear current command
       clearText(lastPosition, termCols);
+      printPrompt(PROMPT);
       lastPosition++;
       currPosition++;
       // Write new command

@@ -49,7 +49,11 @@ void clearText(int len, int termCols)
     fflush(stdout);
   }
   printf(DOWN);
-  printf(PROMPT);
+}
+
+void printPrompt(char *prompt)
+{
+  printf("%s", prompt);
   fflush(stdout);
 }
 
@@ -68,7 +72,7 @@ void seek(int currPosition, int seekPosition, int termCols)
       printf(DOWN);
     }
     printf("\r");
-    printf("\033[%dG", nRights+1);
+    printf("\033[%dG", nRights + 1);
   }
   else if (seekPosition < currPosition)
   {
@@ -77,7 +81,7 @@ void seek(int currPosition, int seekPosition, int termCols)
       printf(UP);
     }
     printf("\r");
-    printf("\033[%dG", nRights+1);
+    printf("\033[%dG", nRights + 1);
   }
   fflush(stdout);
 }
@@ -243,7 +247,8 @@ bool isBuiltin(char *command)
       myStrcmp(command, "unset") == 0 ||
       myStrcmp(command, "cd") == 0 ||
       myStrcmp(command, "exit") == 0 ||
-      myStrcmp(command, "quit") == 0)
+      myStrcmp(command, "quit") == 0 ||
+      myStrcmp(command, "ai") == 0)
   {
     return true;
   }
@@ -269,6 +274,10 @@ int handleBuiltin(char **args, char ***env, char *initialDirectory)
   else if (myStrcmp(args[0], "cd") == 0)
   {
     return commandCd(args, initialDirectory);
+  }
+  else if (myStrcmp(args[0], "ai") == 0)
+  {
+    return commandAI(args);
   }
   else if (myStrcmp(args[0], "exit") == 0 || myStrcmp(args[0], "quit") == 0)
   {
@@ -546,6 +555,47 @@ Commands *createCommands()
   return cmds;
 }
 
+AICommands *createAICommand()
+{
+  AICommands *aiCommands = (AICommands *)malloc(sizeof(AICommands));
+  if (!aiCommands)
+  {
+    return NULL;
+  }
+
+  aiCommands->commands = malloc(sizeof(char *) * MAX_AI_COMMANDS);
+  if (!aiCommands->commands)
+  {
+    free(aiCommands);
+    return NULL;
+  }
+  aiCommands->warning = NULL;
+  aiCommands->explanation = NULL;
+  aiCommands->commandsCount = 0;
+
+  return aiCommands;
+}
+
+AIQuestions *createAIQuestions()
+{
+  AIQuestions *aiQuestions = (AIQuestions *)malloc(sizeof(AIQuestions));
+  if (!aiQuestions)
+  {
+    return NULL;
+  }
+
+  aiQuestions->questions = malloc(sizeof(char *) * MAX_AI_QUESTIONS);
+  if (!aiQuestions->questions)
+  {
+    free(aiQuestions);
+    return NULL;
+  }
+  aiQuestions->explanation = NULL;
+  aiQuestions->questionsCount = 0;
+
+  return aiQuestions;
+}
+
 bool isDelimiter(Token *token)
 {
   return (isPipe(token) || isLogicalOp(token) || isSemicolon(token) || (isLt(token) && token->isOperator) || (isGt(token) && token->isOperator) || (isAppend(token) && token->isOperator));
@@ -659,4 +709,27 @@ void freeCommands(Commands *cs)
     freeVecCommand(cs->commands);
   }
   free(cs);
+}
+
+void freeAICommands(AICommands *commands)
+{
+  if (!commands)
+    return;
+
+  free(commands->warning);
+  free(commands->explanation);
+  for (int i = 0; i < commands->commandsCount; i++)
+    free(commands->commands[i]);
+  free(commands->commands);
+}
+
+void freeAIQuestions(AIQuestions *questions)
+{
+  if (!questions)
+    return;
+
+  free(questions->explanation);
+  for (int i = 0; i < questions->questionsCount; i++)
+    free(questions->questions[i]);
+  free(questions->questions);
 }

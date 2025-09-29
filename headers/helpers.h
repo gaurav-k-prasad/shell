@@ -35,6 +35,13 @@ void seek(int currPosition, int seekPosition, int termCols);
 void clearText(int len, int termCols);
 
 /**
+ * @brief Prints the given prompt to the shell
+ *
+ * @param prompt string to print
+ */
+void printPrompt(char *prompt);
+
+/**
  * @brief writes the input buffer in non canonical mode in the buffer with yellow color
  *
  * @param buffer buffer array
@@ -187,5 +194,32 @@ void freeVecCommand(VectorCommand *vec);
  * @param c
  */
 void freeCommands(Commands *cs);
+
+/**
+ * @brief Initializes the AIQuestions structure with questions array with size MAX_AI_QUESTIONS and rest params with null
+ *
+ * @return AIQuestions*
+ */
+AIQuestions *createAIQuestions();
+
+/**
+ * @brief Initializes the AICommands structure with commands array with size MAX_AI_COMMANDS and rest params with null
+ *
+ */
+AICommands *createAICommand();
+
+/**
+ * @brief Frees everything inside AICommands structure
+ *
+ * @param commands
+ */
+void freeAICommands(AICommands *commands);
+
+/**
+ * @brief Frees everything inside AIQuestions structure
+ *
+ * @param questions
+ */
+void freeAIQuestions(AIQuestions *questions);
 
 #endif

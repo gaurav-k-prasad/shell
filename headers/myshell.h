@@ -40,7 +40,11 @@
 #define PATH_SEPARATOR "/"
 #endif
 
+#define MAX_AI_COMMANDS 256
+#define MAX_AI_QUESTIONS 256
+
 #include "../structs/parser.h"
+#include "../structs/ai.h"
 #include "basicHelpers.h"
 #include "builtins.h"
 #include "executors.h"
@@ -48,5 +52,6 @@
 #include "input.h"
 #include "parser.h"
 #include "forgettingDLL.h"
+#include "aiParser.h"
 
 #endif
