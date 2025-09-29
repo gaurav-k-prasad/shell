@@ -57,8 +57,8 @@ void shellLoop(char **envp)
   while (1)
   {
     printShellStart(env, userName);
-    input = getInputString(history);
-    if (input == NULL)
+    int status = getInputString(history, &input);
+    if (input == NULL || status != 0)
       continue;
 
     /*
@@ -92,6 +92,7 @@ void shellLoop(char **envp)
       }
     }
     free(input); // free the input string
+    input = NULL;
 
     Commands *allCommands = splitCommands(tokenVec);
     if (allCommands == NULL)

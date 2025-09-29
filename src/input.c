@@ -29,8 +29,9 @@ void disableRawMode()
   }
 }
 
-char *getInputString(ForgettingDoublyLinkedList *history)
+int getInputString(ForgettingDoublyLinkedList *history, char **input)
 {
+  *input = NULL;
   char *buffer = NULL;
   size_t buffer_size = 2048; // initial buffer length
   size_t lastPosition = 0;   // last position of string
@@ -40,7 +41,7 @@ char *getInputString(ForgettingDoublyLinkedList *history)
   buffer = malloc(buffer_size);
   if (buffer == NULL)
   {
-    return NULL;
+    return -1;
   }
   ListNode *currentHistory = NULL; // current History
 
@@ -58,7 +59,8 @@ char *getInputString(ForgettingDoublyLinkedList *history)
           whichSignal = INT_MIN;
           continue;
         }
-        return NULL;
+        free(buffer);
+        return -1;
       }
       else
       {
@@ -71,6 +73,11 @@ char *getInputString(ForgettingDoublyLinkedList *history)
       // reset termCols
       termCols = -termCols;
       write(STDOUT_FILENO, "\n", 1);
+      if (lastPosition == 0) // nothing has been written
+      {
+        free(buffer);
+        return 1; // invalid output
+      }
       break;
     }
     else if (nread == 0) // means no reading done
@@ -275,12 +282,13 @@ char *getInputString(ForgettingDoublyLinkedList *history)
       if (temp == NULL)
       {
         free(buffer);
-        return NULL;
+        return -1;
       }
       buffer = temp;
     }
   }
 
   buffer[lastPosition] = '\0';
-  return buffer;
+  *input = buffer;
+  return 0;
 }

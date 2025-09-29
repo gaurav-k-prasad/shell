@@ -2,7 +2,6 @@
 #define INPUT_H
 #include "../structs/forgettingDLL.h"
 
-
 /**
  * @brief Enables the raw mode for the terminal
  *
@@ -19,10 +18,13 @@ void disableRawMode();
  * @brief Get the Input String from the terminal
  *
  * @param ForgettingDoublyLinkedList reference history
- *
+ * @param input reference to where to store the output
+ * 
+ * @note if any text written on terminal and window size change it would run whatever is written
+ * 
  * @warning Free required
- * @return char* Input String
+ * @return int status -1 if failed 1 if window size changed and no input written 0 if no error
  */
-char *getInputString(ForgettingDoublyLinkedList *history);
+int getInputString(ForgettingDoublyLinkedList *history, char **input);
 
 #endif
