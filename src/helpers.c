@@ -1,9 +1,9 @@
 #include "../headers/myshell.h"
 
-extern int termCols;
+extern volatile int termCols;
 extern int whichSignal;
 
-void handleSignal(int sig, siginfo_t *info, void *ucontext)
+void handleSignal(int sig)
 {
   if (sig == SIGINT)
   {
@@ -42,13 +42,14 @@ void clearText(int len, int termCols)
 {
   int numberOfLinesToClear = ((len + myStrlen(PROMPT)) / termCols) + 1;
 
-  for (int i = 0; i < numberOfLinesToClear; i++)
+  for (int i = 0; i < numberOfLinesToClear - 1; i++)
   {
     printf(CLEAR_LINE);
     printf(UP);
     fflush(stdout);
   }
-  printf(DOWN);
+  printf("\033[%ldG\033[K", strlen(PROMPT) + 1); // do not delete the PROMPT length
+  fflush(stdout);
 }
 
 void printPrompt(char *prompt)
@@ -247,8 +248,7 @@ bool isBuiltin(char *command)
       myStrcmp(command, "unset") == 0 ||
       myStrcmp(command, "cd") == 0 ||
       myStrcmp(command, "exit") == 0 ||
-      myStrcmp(command, "quit") == 0 ||
-      myStrcmp(command, "ai") == 0)
+      myStrcmp(command, "quit") == 0)
   {
     return true;
   }
@@ -275,10 +275,6 @@ int handleBuiltin(char **args, char ***env, char *initialDirectory)
   {
     return commandCd(args, initialDirectory);
   }
-  else if (myStrcmp(args[0], "ai") == 0)
-  {
-    return commandAI(args);
-  }
   else if (myStrcmp(args[0], "exit") == 0 || myStrcmp(args[0], "quit") == 0)
   {
     exit(EXIT_SUCCESS);
@@ -304,7 +300,8 @@ bool isMyImplementedBuiltin(char *command)
   if (myStrcmp(command, "echo") == 0 ||
       myStrcmp(command, "pwd") == 0 ||
       myStrcmp(command, "env") == 0 ||
-      myStrcmp(command, "which") == 0)
+      myStrcmp(command, "which") == 0 ||
+      myStrcmp(command, "ai") == 0)
   {
     return true;
   }
@@ -329,6 +326,10 @@ int handleMyImplementedBuiltin(char **args, char ***env, char *initialDirectory)
   else if (myStrcmp(args[0], "which") == 0)
   {
     return commandWhich(args, *env);
+  }
+  else if (myStrcmp(args[0], "ai") == 0)
+  {
+    return commandAI(args);
   }
 }
 

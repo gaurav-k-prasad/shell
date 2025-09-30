@@ -84,6 +84,10 @@ int commandEnv(char **env)
 
 int commandAI(char **args)
 {
+  for (int i = 0; args[i]; i++)
+  {
+    printf("%s\n", args[i]);
+  }
   return 0;
 }
 

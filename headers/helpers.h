@@ -6,10 +6,8 @@
  * @brief Signal interrupt handler
  *
  * @param sig signal code
- * @param info not used
- * @param ucontext not used
  */
-void handleSignal(int sig, siginfo_t *info, void *ucontext);
+void handleSignal(int sig);
 
 /**
  * @brief prints the initial info of the shell

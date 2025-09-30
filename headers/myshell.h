@@ -25,6 +25,7 @@
 #define CLEAR_LINE "\033[2K\r"
 
 #define PROMPT "$ "
+#define AI_PROMPT "> "
 
 #ifdef _WIN32
 #include <windows.h>

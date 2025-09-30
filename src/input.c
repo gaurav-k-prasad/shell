@@ -1,7 +1,7 @@
 #include "../headers/myshell.h"
 
-extern int termCols;    // tells about the columns in the terminal (width of column)
-extern int whichSignal; // tells which signal did we encounter
+extern volatile int termCols; // tells about the columns in the terminal (width of column)
+extern int whichSignal;       // tells which signal did we encounter
 extern struct termios orig_termios;
 
 void enableRawMode()
@@ -31,11 +31,11 @@ void disableRawMode()
 
 int getInputString(ForgettingDoublyLinkedList *history, char **input)
 {
-  *input = NULL;
   char *buffer = NULL;
-  size_t buffer_size = 2048; // initial buffer length
-  size_t lastPosition = 0;   // last position of string
-  size_t currPosition = 0;   // incase the caret goes left by <- key
+  size_t buffer_size = 2048;       // initial buffer length
+  size_t lastPosition = 0;         // last position of string
+  size_t currPosition = 0;         // incase the caret goes left by <- key
+  ListNode *currentHistory = NULL; // current History
   char c;
 
   buffer = malloc(buffer_size);
@@ -43,7 +43,6 @@ int getInputString(ForgettingDoublyLinkedList *history, char **input)
   {
     return -1;
   }
-  ListNode *currentHistory = NULL; // current History
 
   while (1)
   {
@@ -72,12 +71,12 @@ int getInputString(ForgettingDoublyLinkedList *history, char **input)
     {
       // reset termCols
       termCols = -termCols;
-      write(STDOUT_FILENO, "\n", 1);
       if (lastPosition == 0) // nothing has been written
       {
         free(buffer);
         return 1; // invalid output
       }
+      write(STDOUT_FILENO, "\n", 1);
       break;
     }
     else if (nread == 0) // means no reading done
@@ -102,12 +101,11 @@ int getInputString(ForgettingDoublyLinkedList *history, char **input)
 
       if (seq[0] == '[') // for ansi escape sequence
       {
-        if (history->size > 0 && seq[1] == 'A') // Up key or Previous history
+        if (history && history->size > 0 && seq[1] == 'A') // Up key or Previous history
         {
           // clear previous text on terminal
           seek(currPosition, lastPosition, termCols);
           clearText(lastPosition, termCols);
-          printPrompt(PROMPT);
 
           if (!currentHistory)
           {
@@ -127,14 +125,12 @@ int getInputString(ForgettingDoublyLinkedList *history, char **input)
           // update the buffer with new history string
           myStrcpy(buffer, currentHistory->command);
           writeBufferOnTerminal(buffer, lastPosition, termCols);
-          seek(lastPosition, currPosition, termCols);
         }
-        else if (history->size > 0 && seq[1] == 'B') // Down key or next history
+        else if (history && history->size > 0 && seq[1] == 'B') // Down key or next history
         {
           // clear previous text on terminal
           seek(currPosition, lastPosition, termCols);
           clearText(lastPosition, termCols);
-          printPrompt(PROMPT);
 
           currentHistory = getNextNode(currentHistory);
           if (!currentHistory)
@@ -154,7 +150,6 @@ int getInputString(ForgettingDoublyLinkedList *history, char **input)
             // update the buffer with new history string
             myStrcpy(buffer, currentHistory->command);
             writeBufferOnTerminal(buffer, lastPosition, termCols);
-            seek(lastPosition, currPosition, termCols);
           }
         }
         else if (currPosition < lastPosition && seq[1] == 'C') // Right key
@@ -211,7 +206,6 @@ int getInputString(ForgettingDoublyLinkedList *history, char **input)
         seek(currPosition, lastPosition, termCols);
         // clear the command
         clearText(lastPosition, termCols);
-        printPrompt(PROMPT);
         lastPosition--;
         currPosition--;
         // write the buffer command
@@ -243,7 +237,6 @@ int getInputString(ForgettingDoublyLinkedList *history, char **input)
       seek(currPosition, lastPosition, termCols);
       // clear the command
       clearText(lastPosition, termCols);
-      printPrompt(PROMPT);
       lastPosition -= removedCount;
       currPosition -= removedCount;
       // write the buffer command
@@ -264,7 +257,6 @@ int getInputString(ForgettingDoublyLinkedList *history, char **input)
       seek(currPosition, lastPosition, termCols);
       // clear current command
       clearText(lastPosition, termCols);
-      printPrompt(PROMPT);
       lastPosition++;
       currPosition++;
       // Write new command
