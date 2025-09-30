@@ -56,10 +56,21 @@ int getInputString(ForgettingDoublyLinkedList *history, char **input)
         if (whichSignal == SIGWINCH)
         {
           whichSignal = INT_MIN;
-          continue;
         }
-        free(buffer);
-        return -1;
+        else if (whichSignal == SIGCHLD)
+        {
+          whichSignal = INT_MIN;
+          printf("\r");
+          printPrompt(PROMPT);
+          writeBufferOnTerminal(buffer, lastPosition, termCols);
+          seek(lastPosition, currPosition, termCols);
+        }
+        else
+        {
+          whichSignal = INT_MIN;
+          free(buffer);
+          return 0;
+        }
       }
       else
       {
@@ -280,7 +291,13 @@ int getInputString(ForgettingDoublyLinkedList *history, char **input)
     }
   }
 
+  // to start the output of command from next line
+  seek(currPosition, lastPosition, termCols);
+  printf("\r");
+  fflush(stdout);
+
   buffer[lastPosition] = '\0';
   *input = buffer;
+
   return 0;
 }

@@ -112,9 +112,8 @@ int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory, boo
   // close parent pipes
   closePipes(fds, pipeCount);
 
-  int pipelineStatus = 0;
   int processGroupStatus = 0;
-  int last_status = 0;
+  int lastStatus = 0;
   // wait for child processes
   for (int j = 0; j < pipelineComponentCount; ++j)
   {
@@ -129,16 +128,16 @@ int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory, boo
     if (w == pids[j])
     {
       if (WIFEXITED(s))
-        last_status = WEXITSTATUS(s);
+        lastStatus = WEXITSTATUS(s);
       else if (WIFSIGNALED(s))
-        last_status = 128 + WTERMSIG(s); // or whatever policy you want
+        lastStatus = 128 + WTERMSIG(s); // or whatever policy you want
     }
   }
 
   if (!isBackground) // if background process, don't reclaim the terminal control
     tcsetpgrp(STDIN_FILENO, getpid());
   enableRawMode();
-  return pipelineStatus;
+  return lastStatus;
 }
 
 int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], int pipeCount, int i, int pids[], char *initialDirectory, int *processGroup, bool isBackground)
