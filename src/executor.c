@@ -7,7 +7,7 @@ int executeAllPipelines(Command *command, char ***env, char *initialDirectory, i
     Pipeline *pipeline = command->pipelines->data[i];
     int status = executePipeline(pipeline, env, initialDirectory, command->isBackground);
     *laststatus = status;
-    if (status > 0) // means that process was interrupted by ^C
+    if (status < 0) // means that process was interrupted by ^C
     {
       return -1;
     }
@@ -105,6 +105,8 @@ int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory, boo
     {
       killPids(0, i, pids); // kill all the processes till now if pipeline creation failed
       enableRawMode();
+      if (!isBackground) // if background process, don't reclaim the terminal control
+        tcsetpgrp(STDIN_FILENO, getpid());
       return -1;
     }
   }
@@ -130,7 +132,10 @@ int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory, boo
       if (WIFEXITED(s))
         lastStatus = WEXITSTATUS(s);
       else if (WIFSIGNALED(s))
-        lastStatus = 128 + WTERMSIG(s); // or whatever policy you want
+      {
+        lastStatus = -1; // signaled
+        write(STDOUT_FILENO, "\n", 1);
+      }
     }
   }
 
@@ -188,7 +193,8 @@ int executePipelineComponent(PipelineComponent *pc, char ***env, int fds[][2], i
     goto closeFiles;
   }
 
-  for (int i = 0; i < commandEnd; i++) {
+  for (int i = 0; i < commandEnd; i++)
+  {
     args[i] = tokens[i]->token;
   }
   args[commandEnd] = NULL;

@@ -43,6 +43,7 @@
 
 #define MAX_AI_COMMANDS 256
 #define MAX_AI_QUESTIONS 256
+#define MAX_AI_ATTEMPTS 4
 
 #include "../structs/parser.h"
 #include "../structs/ai.h"

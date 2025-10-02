@@ -1,0 +1,1 @@
+(ls;ls > write.txt)2> >(tee err.log)

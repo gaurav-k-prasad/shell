@@ -248,7 +248,8 @@ bool isBuiltin(char *command)
       myStrcmp(command, "unset") == 0 ||
       myStrcmp(command, "cd") == 0 ||
       myStrcmp(command, "exit") == 0 ||
-      myStrcmp(command, "quit") == 0)
+      myStrcmp(command, "quit") == 0 ||
+      myStrcmp(command, "source") == 0)
   {
     return true;
   }
@@ -279,8 +280,12 @@ int handleBuiltin(char **args, char ***env, char *initialDirectory)
   {
     exit(EXIT_SUCCESS);
   }
+  else if (myStrcmp(args[0], "source") == 0)
+  {
+    return commandSource(args, env, initialDirectory);
+  }
 
-  return 0;
+  return -1;
 }
 
 void killPids(int start, int end, int pids[])
@@ -331,6 +336,7 @@ int handleMyImplementedBuiltin(char **args, char ***env, char *initialDirectory)
   {
     return commandAI(args);
   }
+  return -1;
 }
 
 void closePipes(int fds[][2], int n)
