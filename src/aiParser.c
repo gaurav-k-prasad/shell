@@ -2,6 +2,9 @@
 
 int parseAI(AICommands **commands, AIQuestions **questions, const char *path)
 {
+  *commands = NULL;
+  *questions = NULL;
+
   if (!path)
   {
     return -1;
@@ -51,13 +54,13 @@ int parseAI(AICommands **commands, AIQuestions **questions, const char *path)
       {
         goto errorHandle;
       }
+      if (fgets(buff, sizeof(buff), f) == NULL || strncmp("======", buff, strlen("======")) != 0) // if no segment termination
+        goto errorHandle;
     }
     else if (strncmp("===EXPLANATION===", buff, strlen("===EXPLANATION===")) == 0)
     {
       if (fgets(buff, sizeof(buff), f) == NULL)
         goto errorHandle;
-      if (strncmp("======", buff, strlen("======")) == 0) // no explanation
-        continue;
 
       if (!*commands && !*questions)
         goto errorHandle;
@@ -70,13 +73,14 @@ int parseAI(AICommands **commands, AIQuestions **questions, const char *path)
         (*commands)->explanation = explanation;
       else if (*questions)
         (*questions)->explanation = explanation;
+
+      if (fgets(buff, sizeof(buff), f) == NULL || strncmp("======", buff, strlen("======")) != 0) // segment termination
+        goto errorHandle;
     }
     else if (strncmp("===WARNING===", buff, strlen("===WARNING===")) == 0)
     {
       if (fgets(buff, sizeof(buff), f) == NULL)
         goto errorHandle;
-      if (strncmp("======", buff, strlen("======")) == 0) // no warning
-        continue;
 
       if (!*commands)
         goto errorHandle;
@@ -85,8 +89,11 @@ int parseAI(AICommands **commands, AIQuestions **questions, const char *path)
       char *warning = strdup(buff);
       if (!warning)
         goto errorHandle;
-      if (*commands)
-        (*commands)->warning = warning;
+
+      (*commands)->warning = warning;
+
+      if (fgets(buff, sizeof(buff), f) == NULL || strncmp("======", buff, strlen("======")) != 0) // segment termination
+        goto errorHandle;
     }
     else if (strncmp("===COMMANDS===", buff, strlen("===COMMANDS===")) == 0)
     {
@@ -94,10 +101,14 @@ int parseAI(AICommands **commands, AIQuestions **questions, const char *path)
         goto errorHandle;
 
       int commandCount = 0;
+      bool segmentTerminationFound = false;
       while (fgets(buff, sizeof(buff), f) != NULL)
       {
         if (strncmp("======", buff, strlen("======")) == 0)
+        {
+          segmentTerminationFound = true;
           break;
+        }
 
         buff[strcspn(buff, "\n")] = '\0';
         if (commandCount >= MAX_AI_COMMANDS)
@@ -108,6 +119,9 @@ int parseAI(AICommands **commands, AIQuestions **questions, const char *path)
         (*commands)->commands[commandCount++] = temp;
       }
       (*commands)->commandsCount = commandCount;
+
+      if (!segmentTerminationFound)
+        goto errorHandle;
     }
     else if (strncmp("===QUESTIONS===", buff, strlen("===QUESTIONS===")) == 0)
     {
@@ -115,10 +129,15 @@ int parseAI(AICommands **commands, AIQuestions **questions, const char *path)
         goto errorHandle;
 
       int questionsCount = 0;
+      bool segmentTerminationFound = false;
       while (fgets(buff, sizeof(buff), f) != NULL)
       {
         if (strncmp("======", buff, strlen("======")) == 0)
+        {
+          segmentTerminationFound = true;
           break;
+        }
+
         buff[strcspn(buff, "\n")] = '\0';
         if (questionsCount >= MAX_AI_QUESTIONS)
           goto errorHandle;
@@ -128,6 +147,9 @@ int parseAI(AICommands **commands, AIQuestions **questions, const char *path)
         (*questions)->questions[questionsCount++] = temp;
       }
       (*questions)->questionsCount = questionsCount;
+
+      if (!segmentTerminationFound)
+        goto errorHandle;
     }
     else if (strncmp("======", buff, strlen("======")) == 0) // end of segment
     {
