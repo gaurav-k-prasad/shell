@@ -32,15 +32,25 @@ int commandExport(char **args, char ***envReference);
 int commandUnset(char **args, char ***env);
 
 /**
+ * @brief Source command like in bash
+ *
+ * @param args arguments
+ * @param env reference for env variables
+ * @param initialDirectory
+ * @return int status 0 if success else -1
+ */
+int commandSource(char **args, char ***env, char *initialDirectory);
+
+// ! My implemented commands
+/**
  * @brief handles ai commands
- * 
+ *
  * @param args arguments given
- * 
+ *
  * @return int status: -1 if error else 0
  */
 int commandAI(char **args);
 
-// ! My implemented commands
 /**
  * @brief prints current working directory
  *

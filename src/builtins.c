@@ -41,12 +41,62 @@ int commandEcho(char **args, char **env)
 
   for (int i = start; args[i]; i++) // parse all the arguments for echo
   {
-    fprintf(stdout, "%s ", args[i]);
+    fprintf(stdout, "%s", args[i]);
+    if (args[i + 1])
+    {
+      fprintf(stdout, " ");
+    }
   }
 
   if (printNewLine)
     fprintf(stdout, "\n");
 
+  return 0;
+}
+
+int commandSource(char **args, char ***env, char *initialDirectory)
+{
+  if (args[1] == NULL)
+  {
+    fprintf(stderr, "source: filename required\n");
+    return -1;
+  }
+
+  FILE *f = fopen(args[1], "r");
+  if (!f)
+  {
+    perror("source");
+    return -1;
+  }
+
+  char input[1024];
+  while (fgets(input, sizeof(input), f))
+  {
+    VectorToken *tokenVec = getTokens(input, *env);
+    if (tokenVec == NULL)
+    {
+      fprintf(stderr, "Lexical phase failed\n");
+      continue;
+    }
+    Commands *allCommands = splitCommands(tokenVec);
+    if (allCommands == NULL)
+    {
+      freeVecToken(tokenVec);
+      continue;
+    }
+    freeVecToken(tokenVec);
+
+    for (int i = 0; i < allCommands->commands->size; i++)
+    {
+      Command *command = allCommands->commands->data[i];
+      int status = executeCommand(command, env, initialDirectory);
+      if (status > 0)
+        break; // represents that the command was closed by ^C interrupt
+    }
+    freeCommands(allCommands);
+  }
+
+  fclose(f);
   return 0;
 }
 
@@ -84,11 +134,150 @@ int commandEnv(char **env)
 
 int commandAI(char **args)
 {
-  for (int i = 0; args[i]; i++)
+  printf("\033[31mAI never changes the state of current shell\033[0m\n");
+  for (int i = 0; i < MAX_AI_ATTEMPTS; i++)
   {
-    printf("%s\n", args[i]);
+    int pid = fork();
+    if (pid == -1)
+      return -1; // fork failed
+
+    if (pid == 0) // child process
+    {
+      char *a[] = {"python3", "./AI/interface.py", NULL};
+      execvp(a[0], a);
+      perror("execvp failed"); // only runs if exec fails
+      exit(127);               // command not found
+    }
+
+    // parent
+    int status;
+    while (waitpid(pid, &status, 0) == -1 && errno == EINTR)
+      ;
+    int exitCode = 0;
+
+    if (WIFEXITED(status))
+    {
+      if (WEXITSTATUS(status) != 0)
+        return -1;
+
+      AICommands *commands = NULL;
+      AIQuestions *questions = NULL;
+      int status = parseAI(&commands, &questions, "ai_output.txt");
+
+      if (status == -1)
+        return -1;
+
+      if (commands)
+      {
+        int totalCommandLength = 0;
+        if (commands->commandsCount > 0)
+        {
+          printf("\nCommands: \n");
+          for (int i = 0; i < commands->commandsCount; i++)
+          {
+            printf("- %s\n", commands->commands[i]);
+            totalCommandLength += strlen(commands->commands[i]);
+          }
+        }
+        printf("\n\033[32mExplanation: %s\033[0m\n", commands->explanation);
+        printf("\n\033[31mWarning: %s\033[0m\n\n", commands->warning);
+        printf("Do you want to execute the commands (y/[n]): ");
+
+        char input = 'n';
+        input = getchar();
+        if (input != '\n')
+          getchar();
+        if (input != 'y' && input != '\n')
+          return -1;
+
+        // execute the commands
+        int allocSize = sizeof(char) * (totalCommandLength + commands->commandsCount + 1); // count for ;
+        char *commandStr = (char *)malloc(allocSize);
+        if (commandStr == NULL)
+        {
+          exitCode = -1;
+          goto freeAIStructs;
+        }
+        commandStr[0] = '\0';
+
+        FILE *fp = fopen("ai_temp.sh", "w");
+        if (!fp)
+        {
+          exitCode = -1;
+          free(commandStr);
+          goto freeAIStructs;
+        }
+
+        for (int i = 0; i < commands->commandsCount; i++)
+        {
+          strcat(commandStr, commands->commands[i]);
+          if (i < commands->commandsCount - 1)
+            strcat(commandStr, ";");
+        }
+
+        fprintf(fp, "(%s)2> >(tee err.log)", commandStr);
+        free(commandStr);
+        fclose(fp);
+
+        int bashExecutePid = fork();
+
+        if (bashExecutePid == -1)
+        {
+          exitCode = -1;
+          goto freeAIStructs;
+        }
+        else if (bashExecutePid == 0)
+        {
+          char *args[] = {"bash", "ai_temp.sh", NULL};
+          execvp("bash", args);
+          perror("execvp");
+          _exit(errno); // return errno to parent
+        }
+        else // parent
+        {
+          int status;
+          waitpid(bashExecutePid, &status, 0);
+
+          if (WIFEXITED(status))
+          {
+            int code = WEXITSTATUS(status);
+            if (code == 0) // if all commands succeeded
+              return 0;
+            else
+              continue;
+          }
+          else if (WIFSIGNALED(status))
+          {
+            return -1;
+          }
+        }
+      }
+      else if (questions)
+      {
+        printf("\nAnswer these questions to get accurate results: \n");
+        for (int i = 0; i < questions->questionsCount; i++)
+          printf("- %s\n", questions->questions[i]);
+        printf("\n\033[32mExplanation: %s\033[0m\n", questions->explanation);
+      }
+      else
+      {
+        return -1;
+      }
+
+    freeAIStructs:
+      freeAICommands(commands);
+      freeAIQuestions(questions);
+
+      return exitCode;
+    }
+    else if (WIFSIGNALED(status))
+    {
+      fprintf(stderr, "AI command killed by signal %d\n", WTERMSIG(status));
+      return -1;
+    }
   }
-  return 0;
+
+  return -1; // all attempts failed
 }
 
 int commandWhich(char **args, char **env)
