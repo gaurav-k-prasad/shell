@@ -69,9 +69,8 @@ Rules:
 8. Use command history and error info if relevant.
 9. For "history" in the response, summarize both past history and the new command(s) in a few concise points.
 10. No emojis or extra formatting outside JSON
-11. If new line(\\n) required always use \\\\n for excape sequence etc and echo with -e flag to write to a file.
-12. (<cmd1>;<cmd2>)2> >(tee errorInfo.txt) would be the format that the commands would be executed in bash. and the errorInfo.txt would be reevaulated if errors
-13. If Explanation of something use Answering Schmea, keep commands list empty
+11. Use HereDoc to write to a file always
+12. If Explanation of something use Answering Schmea, keep commands list empty
 ---
 JSON Schema for Answering:
 {

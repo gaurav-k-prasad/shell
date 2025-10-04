@@ -1,2 +1,0 @@
-OS: Linux 6.6.87.1-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Mon Apr 21 17:08:54 UTC 2025 (x86_64)
-CWD: /mnt/c/Users/gaura/Desktop/GitRepo/Shell

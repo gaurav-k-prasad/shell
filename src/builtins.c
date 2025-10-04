@@ -195,7 +195,6 @@ int commandAI(char **args)
     {
       if (WEXITSTATUS(status) != 0)
         return -1;
-      printf("enter\n");
 
       AICommands *commands = NULL;
       AIQuestions *questions = NULL;
@@ -231,7 +230,7 @@ int commandAI(char **args)
           return -1;
         printf("\n");
         // execute the commands
-        int allocSize = sizeof(char) * (totalCommandLength + commands->commandsCount + 1); // count for ;
+        int allocSize = sizeof(char) * (totalCommandLength + (2 * commands->commandsCount) + 1); // count for && as delimiterp
         char *commandStr = (char *)malloc(allocSize);
         if (commandStr == NULL)
         {
@@ -251,10 +250,9 @@ int commandAI(char **args)
         for (int i = 0; i < commands->commandsCount; i++)
         {
           strcat(commandStr, commands->commands[i]);
-          if (i < commands->commandsCount - 1)
-            strcat(commandStr, ";");
+          strcat(commandStr, "\n");
         }
-
+        printf("%s\n", commandStr);
         fprintf(fp, "(%s)2> >(tee %s)", commandStr, AI_ERROR_FILE);
         free(commandStr);
         fclose(fp);
