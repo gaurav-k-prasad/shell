@@ -162,11 +162,18 @@ int commandAI(char **args)
       strcat(aiQuery, " ");
   }
 
+  AICommands *commands = NULL; // containers for storing ai output
+  AIQuestions *questions = NULL;
+  int exitCode = 0;
+
   for (int i = 0; i < MAX_AI_ATTEMPTS; i++)
   {
     int pid = fork();
     if (pid == -1)
-      return -1; // fork failed
+    {
+      exitCode = -1;
+      goto exitAI; // fork failed
+    }
 
     if (questionAnswer)
     {
@@ -182,25 +189,30 @@ int commandAI(char **args)
 
       execvp(pythonArgs[0], pythonArgs);
       perror("execvp failed"); // only runs if exec fails
-      exit(127);               // command not found
+      _exit(127);              // command not found
     }
 
     // parent
     int status;
     while (waitpid(pid, &status, 0) == -1 && errno == EINTR)
       ;
-    int exitCode = 0;
 
     if (WIFEXITED(status))
     {
       if (WEXITSTATUS(status) != 0)
-        return -1;
-
-      AICommands *commands = NULL;
-      AIQuestions *questions = NULL;
-      int status = parseAI(&commands, &questions, AI_OUTPUT_FILE);
-      if (status == -1)
-        return -1;
+      {
+        exitCode = -1;
+        goto exitAI;
+      }
+      freeAICommands(commands);
+      freeAIQuestions(questions);
+      commands = NULL;
+      questions = NULL;
+      if (parseAI(&commands, &questions, AI_OUTPUT_FILE) == -1)
+      {
+        exitCode = -1;
+        goto exitAI;
+      }
 
       printf("-----Attempt %d/%d------\n", i + 1, MAX_AI_ATTEMPTS);
       if (commands)
@@ -218,7 +230,7 @@ int commandAI(char **args)
         printf("\n\033[32mExplanation: %s\033[0m\n", commands->explanation);
         printf("\n\033[31mWarning: %s\033[0m\n\n", commands->warning);
         if (commands->commandsCount == 0)
-          return 0;
+          goto exitAI;
 
         printf("Do you want to execute the commands (y/[n]): ");
 
@@ -227,7 +239,11 @@ int commandAI(char **args)
         if (input != '\n')
           getchar();
         if (input != 'y' && input != '\n')
-          return -1;
+        {
+          exitCode = -1;
+          goto exitAI;
+        }
+
         printf("\n");
         // execute the commands
         int allocSize = sizeof(char) * (totalCommandLength + (2 * commands->commandsCount) + 1); // count for && as delimiterp
@@ -235,7 +251,7 @@ int commandAI(char **args)
         if (commandStr == NULL)
         {
           exitCode = -1;
-          goto freeAIStructs;
+          goto exitAI;
         }
         commandStr[0] = '\0';
 
@@ -244,7 +260,7 @@ int commandAI(char **args)
         {
           exitCode = -1;
           free(commandStr);
-          goto freeAIStructs;
+          goto exitAI;
         }
 
         for (int i = 0; i < commands->commandsCount; i++)
@@ -262,7 +278,7 @@ int commandAI(char **args)
         if (bashExecutePid == -1)
         {
           exitCode = -1;
-          goto freeAIStructs;
+          goto exitAI;
         }
         else if (bashExecutePid == 0)
         {
@@ -274,19 +290,24 @@ int commandAI(char **args)
         else // parent
         {
           int status;
-          waitpid(bashExecutePid, &status, 0);
+          while (waitpid(bashExecutePid, &status, 0) == -1 && errno == EINTR)
+            ;
 
           if (WIFEXITED(status))
           {
             int code = WEXITSTATUS(status);
             if (code == 0) // if all commands succeeded
-              return 0;
+            {
+              exitCode = 0;
+              goto exitAI;
+            }
             else
               continue;
           }
           else if (WIFSIGNALED(status))
           {
-            return -1;
+            exitCode = -1;
+            goto exitAI;
           }
         }
       }
@@ -308,23 +329,23 @@ int commandAI(char **args)
       }
       else
       {
-        return -1;
+        exitCode = -1;
+        goto exitAI;
       }
-
-    freeAIStructs:
-      freeAICommands(commands);
-      freeAIQuestions(questions);
-
-      return exitCode;
     }
     else if (WIFSIGNALED(status))
     {
       fprintf(stderr, "AI command killed by signal %d\n", WTERMSIG(status));
-      return -1;
+      exitCode = -1;
+      goto exitAI;
     }
   }
 
-  return -1; // all attempts failed
+exitAI:
+  free(aiQuery);
+  freeAICommands(commands);
+  freeAIQuestions(questions);
+  return exitCode;
 }
 
 int commandWhich(char **args, char **env)
