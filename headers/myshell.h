@@ -15,6 +15,7 @@
 #include <errno.h>
 #include <termios.h>
 #include <sys/ioctl.h>
+#include <sys/utsname.h>
 
 #define MAX(A, B) (A > B) ? A : B
 #define MIN(A, B) (A < B) ? A : B
@@ -41,9 +42,11 @@
 #define PATH_SEPARATOR "/"
 #endif
 
-#define MAX_AI_COMMANDS 256
-#define MAX_AI_QUESTIONS 256
+#define MAX_AI_COMMANDS 512
+#define MAX_AI_QUESTIONS 16
 #define MAX_AI_ATTEMPTS 4
+#define MAX_AI_QUERY_LEN 2048
+#define HISTORY_COUNT_AI 5
 
 #include "../structs/parser.h"
 #include "../structs/ai.h"

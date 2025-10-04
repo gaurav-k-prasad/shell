@@ -1,7 +1,7 @@
 #include "../structs/ai.h"
 
 /**
- * @brief Parses the ai_output.txt file in the specified format and gets the result in either AICommands or AIQuestions depending on the type of ai_output.txt
+ * @brief Parses the aiOutput.txt file in the specified format and gets the result in either AICommands or AIQuestions depending on the type of aiOutput.txt
  *
  * @warning free required of AICommand or AIQuestions
  *

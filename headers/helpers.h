@@ -1,6 +1,7 @@
 #ifndef HELPERS_H
 #define HELPERS_H
 #include "./parser.h"
+#include "../structs/forgettingDLL.h"
 
 /**
  * @brief Signal interrupt handler
@@ -68,6 +69,33 @@ char *getFullPathOfWhich(char *command, char **env);
  * @return int status: -1 if error else 0
  */
 int cloneEnv(char **env, char ***newEnvReference);
+
+/**
+ * @brief Writes N history elements from linked list into file
+ *
+ * @param file name of file
+ * @param n number of history elements to write
+ * @param history doubly linked list
+ * @return int -1 if error else 0
+ */
+int writeNHistoryInfoToFile(const char *file, int n, ForgettingDoublyLinkedList *history);
+
+/**
+ * @brief Writes the platform into specified
+ *
+ * @param file file name
+ * @return int -1 if error else 0
+ */
+int writePlatformInfoToFile(const char *file);
+
+/**
+ * @brief Writes the specified error in the file
+ *
+ * @param file name of file
+ * @param err error to write
+ * @return int -1 if error else 0
+ */
+int writeErrorInfoToFile(const char *file, const char *err);
 
 /**
  * @brief Handles the built in commands

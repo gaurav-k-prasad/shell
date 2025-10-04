@@ -18,15 +18,16 @@ int parseAI(AICommands **commands, AIQuestions **questions, const char *path)
   FILE *f;
   if ((f = fopen(path, "r")) == NULL)
     return -1;
+  
+  char *buff = (char *)malloc(sizeof(char) * (1 << 14));
+  int allocSize = sizeof(char) * (1 << 14);
 
-  char buff[2048];
-
-  while (fgets(buff, sizeof(buff), f) != NULL)
+  while (fgets(buff, allocSize, f) != NULL)
   {
     buff[strcspn(buff, "\n")] = '\0';
     if (strncmp(buff, "===OUTPUT===", strlen("===OUTPUT===")) == 0)
     {
-      if (fgets(buff, sizeof(buff), f) == NULL) // if eof and no output type written in file
+      if (fgets(buff, allocSize, f) == NULL) // if eof and no output type written in file
         goto errorHandle;
       if (strncmp("======", buff, strlen("======")) == 0) // no warning
         goto errorHandle;                                 // no type specified
@@ -54,12 +55,12 @@ int parseAI(AICommands **commands, AIQuestions **questions, const char *path)
       {
         goto errorHandle;
       }
-      if (fgets(buff, sizeof(buff), f) == NULL || strncmp("======", buff, strlen("======")) != 0) // if no segment termination
+      if (fgets(buff, allocSize, f) == NULL || strncmp("======", buff, strlen("======")) != 0) // if no segment termination
         goto errorHandle;
     }
     else if (strncmp("===EXPLANATION===", buff, strlen("===EXPLANATION===")) == 0)
     {
-      if (fgets(buff, sizeof(buff), f) == NULL)
+      if (fgets(buff, allocSize, f) == NULL)
         goto errorHandle;
 
       if (!*commands && !*questions)
@@ -74,12 +75,12 @@ int parseAI(AICommands **commands, AIQuestions **questions, const char *path)
       else if (*questions)
         (*questions)->explanation = explanation;
 
-      if (fgets(buff, sizeof(buff), f) == NULL || strncmp("======", buff, strlen("======")) != 0) // segment termination
+      if (fgets(buff, allocSize, f) == NULL || strncmp("======", buff, strlen("======")) != 0) // segment termination
         goto errorHandle;
     }
     else if (strncmp("===WARNING===", buff, strlen("===WARNING===")) == 0)
     {
-      if (fgets(buff, sizeof(buff), f) == NULL)
+      if (fgets(buff, allocSize, f) == NULL)
         goto errorHandle;
 
       if (!*commands)
@@ -92,7 +93,7 @@ int parseAI(AICommands **commands, AIQuestions **questions, const char *path)
 
       (*commands)->warning = warning;
 
-      if (fgets(buff, sizeof(buff), f) == NULL || strncmp("======", buff, strlen("======")) != 0) // segment termination
+      if (fgets(buff, allocSize, f) == NULL || strncmp("======", buff, strlen("======")) != 0) // segment termination
         goto errorHandle;
     }
     else if (strncmp("===COMMANDS===", buff, strlen("===COMMANDS===")) == 0)
@@ -102,7 +103,7 @@ int parseAI(AICommands **commands, AIQuestions **questions, const char *path)
 
       int commandCount = 0;
       bool segmentTerminationFound = false;
-      while (fgets(buff, sizeof(buff), f) != NULL)
+      while (fgets(buff, allocSize, f) != NULL)
       {
         if (strncmp("======", buff, strlen("======")) == 0)
         {
@@ -130,7 +131,7 @@ int parseAI(AICommands **commands, AIQuestions **questions, const char *path)
 
       int questionsCount = 0;
       bool segmentTerminationFound = false;
-      while (fgets(buff, sizeof(buff), f) != NULL)
+      while (fgets(buff, allocSize, f) != NULL)
       {
         if (strncmp("======", buff, strlen("======")) == 0)
         {
@@ -161,10 +162,12 @@ int parseAI(AICommands **commands, AIQuestions **questions, const char *path)
     }
   }
 
+  free(buff);
   fclose(f);
   return 0;
 
 errorHandle:
+  free(buff);
   fclose(f);
   freeAICommands(*commands);
   *commands = NULL;

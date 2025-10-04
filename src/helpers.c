@@ -262,6 +262,61 @@ bool isAppend(Token *input)
   return (input->isOperator && strcmp(input->token, ">>") == 0);
 }
 
+int writeNHistoryInfoToFile(const char *file, int n, ForgettingDoublyLinkedList *history)
+{
+  FILE *historyInfo = fopen(file, "w");
+  if (!historyInfo)
+    return -1;
+  ListNode *currHistory = history->tail;
+  int historyWrittenCount = 0;
+  while (currHistory && historyWrittenCount < 5)
+  {
+    fprintf(historyInfo, "%s\n", currHistory->command);
+    currHistory = currHistory->prev;
+    historyWrittenCount++;
+  }
+  fclose(historyInfo);
+  return 0;
+}
+
+int writePlatformInfoToFile(const char *file)
+{
+  FILE *platformInfo = fopen(file, "w");
+  if (!platformInfo)
+    return -1;
+
+  struct utsname sysinfo;
+  char cwd[PATH_MAX];
+
+  if (uname(&sysinfo) == 0)
+  {
+    fprintf(platformInfo, "OS: %s %s %s (%s)\n",
+            sysinfo.sysname,
+            sysinfo.release,
+            sysinfo.version,
+            sysinfo.machine);
+  }
+
+  if (getcwd(cwd, sizeof(cwd)) != NULL)
+  {
+    fprintf(platformInfo, "CWD: %s\n", cwd);
+  }
+  fclose(platformInfo);
+  return 0;
+}
+
+int writeErrorInfoToFile(const char *file, const char *err)
+{
+  FILE *errorInfo = fopen(file, "w");
+  if (!errorInfo)
+    return -1;
+
+  fprintf(errorInfo, "%s", err);
+
+  fclose(errorInfo);
+  return 0;
+}
+
 int handleBuiltin(char **args, char ***env, char *initialDirectory)
 {
   if (myStrcmp(args[0], "export") == 0)

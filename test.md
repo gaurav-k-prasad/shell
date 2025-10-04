@@ -20,6 +20,7 @@
 16. $PATH\ $PATH
 17. cat < read.txt | grep a | grep b > write.txt && echo "hello world" ; echo "bruh done\n"
 18. $, $$
+19. ai create a test.py file and make a tensorflow code for classification model and run it and log the output into a log.txt file. For this task use conda activate tf and then run it
 
 ---
 

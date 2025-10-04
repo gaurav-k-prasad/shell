@@ -3,6 +3,8 @@
 volatile int termCols;                       // tells about the columns in the terminal (width of column)
 volatile sig_atomic_t whichSignal = INT_MIN; // initiate it with invalid signal
 struct termios orig_termios;
+ForgettingDoublyLinkedList *history = NULL;
+
 void shellLoop(char **env);
 
 int main(int argc, char const *argv[], char *envp[])
@@ -37,7 +39,7 @@ int main(int argc, char const *argv[], char *envp[])
 
 void shellLoop(char **envp)
 {
-  ForgettingDoublyLinkedList *history = createFDLL(100);
+  history = createFDLL(100);
   if (tcgetattr(STDIN_FILENO, &orig_termios) == -1)
     exit(EXIT_FAILURE);
 

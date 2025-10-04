@@ -1,4 +1,5 @@
 #include "../headers/myshell.h"
+extern ForgettingDoublyLinkedList *history;
 
 int commandCd(char **args, char *initialDirectory)
 {
@@ -134,17 +135,46 @@ int commandEnv(char **env)
 
 int commandAI(char **args)
 {
-  printf("\033[31mAI never changes the state of current shell\033[0m\n");
+  printf("\033[31mAI never changes the state of current shell\033[0m\n\n");
+
+  if (writeNHistoryInfoToFile("historyInfo.txt", HISTORY_COUNT_AI, history) == -1)
+    return -1;
+  if (writePlatformInfoToFile("platformInfo.txt") == -1)
+    return -1;
+  if (writeErrorInfoToFile("errorInfo.txt", "") == -1) // creating the file
+    return -1;
+
+  char *questionAnswer = NULL; // if any question asked by ai would be answered as this
+  char *aiQuery = (char *)malloc(sizeof(char) * MAX_AI_QUERY_LEN);
+  if (!aiQuery)
+    return -1;
+  aiQuery[0] = '\0';
+
+  for (int i = 1; args[i]; i++) // don't want to include "ai" so starting from 1
+  {
+    strcat(aiQuery, args[i]);
+    strcat(aiQuery, " ");
+  }
+
   for (int i = 0; i < MAX_AI_ATTEMPTS; i++)
   {
     int pid = fork();
     if (pid == -1)
       return -1; // fork failed
 
+    if (questionAnswer)
+    {
+      strcat(aiQuery, "; Clarification: ");
+      strcat(aiQuery, questionAnswer);
+      free(questionAnswer);
+      questionAnswer = NULL;
+    }
+
     if (pid == 0) // child process
     {
-      char *a[] = {"python3", "./AI/interface.py", NULL};
-      execvp(a[0], a);
+      char *pythonArgs[] = {"python3", "./AI/interface.py", aiQuery, NULL};
+
+      execvp(pythonArgs[0], pythonArgs);
       perror("execvp failed"); // only runs if exec fails
       exit(127);               // command not found
     }
@@ -159,14 +189,15 @@ int commandAI(char **args)
     {
       if (WEXITSTATUS(status) != 0)
         return -1;
+      printf("enter\n");
 
       AICommands *commands = NULL;
       AIQuestions *questions = NULL;
-      int status = parseAI(&commands, &questions, "ai_output.txt");
-
+      int status = parseAI(&commands, &questions, "aiOutput.txt");
       if (status == -1)
         return -1;
 
+      printf("-----Attempt %d/%d------\n", i + 1, MAX_AI_ATTEMPTS);
       if (commands)
       {
         int totalCommandLength = 0;
@@ -181,6 +212,9 @@ int commandAI(char **args)
         }
         printf("\n\033[32mExplanation: %s\033[0m\n", commands->explanation);
         printf("\n\033[31mWarning: %s\033[0m\n\n", commands->warning);
+        if (commands->commandsCount == 0)
+          return 0;
+
         printf("Do you want to execute the commands (y/[n]): ");
 
         char input = 'n';
@@ -189,7 +223,7 @@ int commandAI(char **args)
           getchar();
         if (input != 'y' && input != '\n')
           return -1;
-
+        printf("\n");
         // execute the commands
         int allocSize = sizeof(char) * (totalCommandLength + commands->commandsCount + 1); // count for ;
         char *commandStr = (char *)malloc(allocSize);
@@ -200,7 +234,7 @@ int commandAI(char **args)
         }
         commandStr[0] = '\0';
 
-        FILE *fp = fopen("ai_temp.sh", "w");
+        FILE *fp = fopen("gshellAITemp.sh", "w");
         if (!fp)
         {
           exitCode = -1;
@@ -215,7 +249,7 @@ int commandAI(char **args)
             strcat(commandStr, ";");
         }
 
-        fprintf(fp, "(%s)2> >(tee err.log)", commandStr);
+        fprintf(fp, "(%s)2> >(tee errorInfo.txt)", commandStr);
         free(commandStr);
         fclose(fp);
 
@@ -228,7 +262,7 @@ int commandAI(char **args)
         }
         else if (bashExecutePid == 0)
         {
-          char *args[] = {"bash", "ai_temp.sh", NULL};
+          char *args[] = {"bash", "gshellAITemp.sh", NULL};
           execvp("bash", args);
           perror("execvp");
           _exit(errno); // return errno to parent
@@ -258,6 +292,15 @@ int commandAI(char **args)
         for (int i = 0; i < questions->questionsCount; i++)
           printf("- %s\n", questions->questions[i]);
         printf("\n\033[32mExplanation: %s\033[0m\n", questions->explanation);
+
+        printf("Answer: \n");
+        size_t n = 0;
+        int nRead = getline(&questionAnswer, &n, stdin);
+        if (nRead == -1)
+          continue;
+        if (questionAnswer[nRead - 1] == '\n')
+          questionAnswer[nRead - 1] = '\0';
+        continue;
       }
       else
       {

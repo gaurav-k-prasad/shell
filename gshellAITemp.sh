@@ -1,0 +1,1 @@
+(rm -rf ../test-rust)2> >(tee errorInfo.txt)

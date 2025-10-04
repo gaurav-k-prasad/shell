@@ -77,7 +77,7 @@ int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory, boo
     PipelineComponent *first = pipeline->components->data[0];
     char *command = first->tokens->data[0]->token;
 
-    if (isBuiltin(command))
+    if (isBuiltin(command) || strcmp(command, "ai") == 0)
     {
       if (pipelineComponentCount > 1)
       {

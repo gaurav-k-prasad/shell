@@ -1,0 +1,12 @@
+===OUTPUT===
+command
+======
+===EXPLANATION===
+Deletes the 'test-rust' directory and all its contents from the parent directory.
+======
+===WARNING===
+This command permanently deletes files and directories without confirmation; ensure you are deleting the correct folder.
+======
+===COMMANDS===
+rm -rf ../test-rust
+======
