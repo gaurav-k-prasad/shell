@@ -23,6 +23,7 @@
     "forgettingcirculararray.h": "c",
     "termbits.h": "c",
     "forgettingdll.h": "c",
-    "ioctl.h": "c"
+    "ioctl.h": "c",
+    "gshell.h": "c"
   }
 }

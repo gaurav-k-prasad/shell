@@ -1,4 +1,4 @@
-#include "../headers/myshell.h"
+#include "../headers/gshell.h"
 
 int executeAllPipelines(Command *command, char ***env, char *initialDirectory, int *laststatus)
 {

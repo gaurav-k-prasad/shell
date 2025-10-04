@@ -27,14 +27,19 @@ try:
   import requests, json, os, itertools, sys, argparse, threading, time
   load_dotenv()
 
+  AI_OUTPUT_FILE = "gshellAIOutputInfo.txt"
+  AI_ERROR_FILE = "gshellAIErrorInfo.txt"
+  AI_HISTORY_FILE = "gshellAIHistoryInfo.txt"
+  AI_PLATFORM_FILE = "gshellAIPlatformInfo.txt"
+
   parser = argparse.ArgumentParser(description="Shell AI Assistant")
   parser.add_argument("userInput", help="The natural language query or command")
 
   userInput = parser.parse_args().userInput
 
-  historyInfo = readFileContent("historyInfo.txt")
-  platformInfo = readFileContent("platformInfo.txt")
-  errorsInfo = readFileContent("errorInfo.txt")
+  historyInfo = readFileContent(AI_HISTORY_FILE)
+  platformInfo = readFileContent(AI_PLATFORM_FILE)
+  errorsInfo = readFileContent(AI_ERROR_FILE)
 
   prompt = f"""
 You are an AI assistant for a Unix-like shell. 
@@ -177,16 +182,16 @@ Output:
     resJson = dict(json.loads(response))
 
     if ("commands" in resJson):
-      with open("aiOutput.txt", "w") as f:
+      with open(AI_OUTPUT_FILE, "w") as f:
         writeSection("OUTPUT", "command", f)
         writeSection("EXPLANATION", resJson.get("explanation"), f)
         writeSection("WARNING", resJson.get("warning"), f)
         writeList("COMMANDS", resJson.get("commands", []), f)
-      with open("historyInfo.txt", "w") as f:
+      with open(AI_HISTORY_FILE, "w") as f:
         for item in resJson.get("history", []):
           f.write(item + "\n")
     elif ("questions" in resJson):
-      with open("aiOutput.txt", "w") as f:
+      with open(AI_OUTPUT_FILE, "w") as f:
         writeSection("OUTPUT", "question", f)
         writeSection("EXPLANATION", resJson.get("explanation"), f)
         writeList("QUESTIONS", resJson.get("questions", []), f)

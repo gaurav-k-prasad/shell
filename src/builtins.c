@@ -1,5 +1,10 @@
-#include "../headers/myshell.h"
+#include "../headers/gshell.h"
 extern ForgettingDoublyLinkedList *history;
+
+#define AI_OUTPUT_FILE "gshellAIOutputInfo.txt"
+#define AI_ERROR_FILE "gshellAIErrorInfo.txt"
+#define AI_HISTORY_FILE "gshellAIHistoryInfo.txt"
+#define AI_PLATFORM_FILE "gshellAIPlatformInfo.txt"
 
 int commandCd(char **args, char *initialDirectory)
 {
@@ -137,11 +142,11 @@ int commandAI(char **args)
 {
   printf("\033[31mAI never changes the state of current shell\033[0m\n\n");
 
-  if (writeNHistoryInfoToFile("historyInfo.txt", HISTORY_COUNT_AI, history) == -1)
+  if (writeNHistoryInfoToFile(AI_HISTORY_FILE, AI_HISTORY_COUNT, history) == -1)
     return -1;
-  if (writePlatformInfoToFile("platformInfo.txt") == -1)
+  if (writePlatformInfoToFile(AI_PLATFORM_FILE) == -1)
     return -1;
-  if (writeErrorInfoToFile("errorInfo.txt", "") == -1) // creating the file
+  if (writeErrorInfoToFile(AI_ERROR_FILE, "") == -1) // creating the file
     return -1;
 
   char *questionAnswer = NULL; // if any question asked by ai would be answered as this
@@ -153,7 +158,8 @@ int commandAI(char **args)
   for (int i = 1; args[i]; i++) // don't want to include "ai" so starting from 1
   {
     strcat(aiQuery, args[i]);
-    strcat(aiQuery, " ");
+    if (args[i + 1])
+      strcat(aiQuery, " ");
   }
 
   for (int i = 0; i < MAX_AI_ATTEMPTS; i++)
@@ -193,7 +199,7 @@ int commandAI(char **args)
 
       AICommands *commands = NULL;
       AIQuestions *questions = NULL;
-      int status = parseAI(&commands, &questions, "aiOutput.txt");
+      int status = parseAI(&commands, &questions, AI_OUTPUT_FILE);
       if (status == -1)
         return -1;
 
@@ -249,7 +255,7 @@ int commandAI(char **args)
             strcat(commandStr, ";");
         }
 
-        fprintf(fp, "(%s)2> >(tee errorInfo.txt)", commandStr);
+        fprintf(fp, "(%s)2> >(tee %s)", commandStr, AI_ERROR_FILE);
         free(commandStr);
         fclose(fp);
 

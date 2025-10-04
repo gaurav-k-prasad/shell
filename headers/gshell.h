@@ -46,7 +46,7 @@
 #define MAX_AI_QUESTIONS 16
 #define MAX_AI_ATTEMPTS 4
 #define MAX_AI_QUERY_LEN 2048
-#define HISTORY_COUNT_AI 5
+#define AI_HISTORY_COUNT 5
 
 #include "../structs/parser.h"
 #include "../structs/ai.h"

@@ -1,0 +1,11 @@
+===OUTPUT===
+question
+======
+===EXPLANATION===
+The query 'fix this' is too vague without context or error information.
+======
+===QUESTIONS===
+What specifically needs to be fixed?
+What issue or error are you encountering?
+What was the output of the previous 'ai' command that needs fixing?
+======

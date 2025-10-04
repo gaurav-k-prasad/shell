@@ -1,4 +1,4 @@
-#include "../headers/myshell.h"
+#include "../headers/gshell.h"
 
 VectorToken *getTokens(char *input, char **env)
 {

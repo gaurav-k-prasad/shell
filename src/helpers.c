@@ -1,4 +1,4 @@
-#include "../headers/myshell.h"
+#include "../headers/gshell.h"
 
 extern volatile int termCols;
 extern int whichSignal;

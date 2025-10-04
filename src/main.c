@@ -1,4 +1,4 @@
-#include "../headers/myshell.h"
+#include "../headers/gshell.h"
 
 volatile int termCols;                       // tells about the columns in the terminal (width of column)
 volatile sig_atomic_t whichSignal = INT_MIN; // initiate it with invalid signal

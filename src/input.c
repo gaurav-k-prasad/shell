@@ -1,4 +1,4 @@
-#include "../headers/myshell.h"
+#include "../headers/gshell.h"
 
 extern volatile int termCols; // tells about the columns in the terminal (width of column)
 extern int whichSignal;       // tells which signal did we encounter

@@ -1,4 +1,4 @@
-#include "../headers/myshell.h"
+#include "../headers/gshell.h"
 
 int parseAI(AICommands **commands, AIQuestions **questions, const char *path)
 {
@@ -18,7 +18,7 @@ int parseAI(AICommands **commands, AIQuestions **questions, const char *path)
   FILE *f;
   if ((f = fopen(path, "r")) == NULL)
     return -1;
-  
+
   char *buff = (char *)malloc(sizeof(char) * (1 << 14));
   int allocSize = sizeof(char) * (1 << 14);
 
