@@ -232,7 +232,7 @@ int commandAI(char **args)
         if (commands->commandsCount == 0)
           goto exitAI;
 
-        printf("Do you want to execute the commands (y/[n]): ");
+        printf("Do you want to execute the commands ([y]/n): ");
 
         char input = 'n';
         input = getchar();

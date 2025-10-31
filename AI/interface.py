@@ -24,8 +24,8 @@ def writeList(section, listItems, filePtr):
 
 try:
   from dotenv import load_dotenv
-  import requests, json, os, itertools, sys, argparse, threading, time
   load_dotenv()
+  import requests, json, os, itertools, sys, argparse, threading, time
 
   AI_OUTPUT_FILE = "gshellAIOutputInfo.txt"
   AI_ERROR_FILE = "gshellAIErrorInfo.txt"
@@ -154,14 +154,12 @@ Output:
 
   if resp.status_code == 200:
     response = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
-    print(response)
   else:
     print("Error:", resp.status_code, resp.text)
     raise Exception("AI Call failed")
 
   if (response and response.startswith("```")):
     response = response.strip("```json").strip()
-  print(response)
   shellTest = """```json
   {
   "commands": [
