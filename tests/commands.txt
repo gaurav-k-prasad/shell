@@ -1,0 +1,22 @@
+echo " $PATH $ \$ "
+echo " $ $SHELL \$ "
+echo "$SHELL \$"
+printf 'test: hello \\ world\n'
+printf 'test: hello\\n world\n'
+printf 'test: hello<bru\n'
+printf 'test: pipe <hello\n'
+printf 'test: pipe> hello\n'
+printf 'test: pipe|bp\n'
+printf "test: '' and related inputs\n"
+printf '\$INVALID\$VALID\n'
+printf '\$VALID\$VALID\n'
+printf '\$VALID\$VALID\$VALID\n'
+printf '\$VALID\$INVALID\$VALID\n'
+# variations with quotes
+echo "$PATH\ $PATH"
+cat < tests/read.txt | grep a | grep b > tests/write.txt || true
+echo "hello world" && echo -e "bruh done\n"
+echo "$"
+echo "$$"
+# a placeholder AI-related command (can't run conda here); keep as comment for manual testing
+# ai create a test.py file and make a tensorflow code for classification model and run it and log the output into a log.txt file. For this task use conda activate tf and then run it

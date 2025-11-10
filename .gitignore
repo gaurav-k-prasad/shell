@@ -5,3 +5,4 @@ write.txt # test files
 gshell
 .env
 gshellAI*
+tests/out/
