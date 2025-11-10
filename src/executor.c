@@ -98,14 +98,15 @@ int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory, boo
   {
     int status = executePipelineComponent(pipeline->components->data[i], env, fds, pipeCount, i, pids, initialDirectory, &processGroup, isBackground);
     if (i == 0 && !isBackground) // if not background then we can take terminal control
-      if (processGroup != INT_MIN)
+      if (processGroup != INT_MIN && isatty(STDIN_FILENO))
         tcsetpgrp(STDIN_FILENO, processGroup); // the process group gets the access of the terminal control
 
     if (status == -1)
     {
       killPids(0, i, pids); // kill all the processes till now if pipeline creation failed
-      enableRawMode();
-      if (!isBackground) // if background process, don't reclaim the terminal control
+      if (isatty(STDIN_FILENO))
+        enableRawMode();
+      if (!isBackground && isatty(STDIN_FILENO)) // if background process, don't reclaim the terminal control
         tcsetpgrp(STDIN_FILENO, getpid());
       return -1;
     }
@@ -139,9 +140,10 @@ int executePipeline(Pipeline *pipeline, char ***env, char *initialDirectory, boo
     }
   }
 
-  if (!isBackground) // if background process, don't reclaim the terminal control
+  if (!isBackground && isatty(STDIN_FILENO)) // if background process, don't reclaim the terminal control
     tcsetpgrp(STDIN_FILENO, getpid());
-  enableRawMode();
+  if (isatty(STDIN_FILENO))
+    enableRawMode();
   return lastStatus;
 }
 

@@ -6,6 +6,9 @@ extern struct termios orig_termios;
 
 void enableRawMode()
 {
+  if (!isatty(STDIN_FILENO))
+    return;
+    
   struct termios raw = orig_termios;
   raw.c_lflag &= ~(ECHO | ICANON);
   raw.c_oflag |= OPOST; // enable post-processing
@@ -23,6 +26,9 @@ void enableRawMode()
 void disableRawMode()
 {
   // Restore the original terminal attributes
+  if (!isatty(STDIN_FILENO))
+    return;
+    
   if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1)
   {
     exit(EXIT_FAILURE);
@@ -299,5 +305,56 @@ int getInputString(ForgettingDoublyLinkedList *history, char **input)
   buffer[lastPosition] = '\0';
   *input = buffer;
 
+  return 0;
+}
+
+int getNonInteractiveInput(char **input)
+{
+  char *buffer = NULL;
+  size_t buffer_size = 2048;
+  size_t position = 0;
+  char c;
+
+  buffer = malloc(buffer_size);
+  if (buffer == NULL)
+  {
+    return -1;
+  }
+
+  while (1)
+  {
+    ssize_t nread = read(STDIN_FILENO, &c, 1);
+    
+    if (nread <= 0)
+    {
+      // EOF or error
+      free(buffer);
+      *input = NULL;
+      return 1; // EOF
+    }
+    
+    if (c == '\n')
+    {
+      break;
+    }
+    
+    buffer[position++] = c;
+    
+    // Resize buffer if needed
+    if (position >= buffer_size - 1)
+    {
+      buffer_size *= 2;
+      char *temp = realloc(buffer, buffer_size);
+      if (temp == NULL)
+      {
+        free(buffer);
+        return -1;
+      }
+      buffer = temp;
+    }
+  }
+
+  buffer[position] = '\0';
+  *input = buffer;
   return 0;
 }

@@ -31,6 +31,7 @@ int commandPwd()
     return -1;
   }
   fprintf(stdout, "%s\n", cwd);
+  fflush(stdout);
   free(cwd);
   return 0;
 }
@@ -38,16 +39,69 @@ int commandPwd()
 int commandEcho(char **args, char **env)
 {
   int printNewLine = true;
+  int interpretEscapes = false;
   int start = 1;
-  if (args[1] && myStrcmp(args[1], "-n") == 0) // handling -n flag for no new line character
+  
+  // Handle flags
+  while (args[start] && args[start][0] == '-')
   {
-    start = 2;
-    printNewLine = false;
+    if (myStrcmp(args[start], "-n") == 0)
+    {
+      printNewLine = false;
+      start++;
+    }
+    else if (myStrcmp(args[start], "-e") == 0)
+    {
+      interpretEscapes = true;
+      start++;
+    }
+    else if (myStrcmp(args[start], "-E") == 0)
+    {
+      interpretEscapes = false;
+      start++;
+    }
+    else
+    {
+      break; // Unknown flag, stop processing flags
+    }
   }
 
   for (int i = start; args[i]; i++) // parse all the arguments for echo
   {
-    fprintf(stdout, "%s", args[i]);
+    if (interpretEscapes)
+    {
+      // Process escape sequences
+      char *str = args[i];
+      for (int j = 0; str[j]; j++)
+      {
+        if (str[j] == '\\' && str[j + 1])
+        {
+          j++;
+          switch (str[j])
+          {
+            case 'n': fprintf(stdout, "\n"); break;
+            case 't': fprintf(stdout, "\t"); break;
+            case 'r': fprintf(stdout, "\r"); break;
+            case 'a': fprintf(stdout, "\a"); break;
+            case 'b': fprintf(stdout, "\b"); break;
+            case 'f': fprintf(stdout, "\f"); break;
+            case 'v': fprintf(stdout, "\v"); break;
+            case '\\': fprintf(stdout, "\\"); break;
+            case '0': fprintf(stdout, "\0"); break;
+            default: fprintf(stdout, "\\%c", str[j]); break;
+          }
+        }
+        else
+        {
+          fprintf(stdout, "%c", str[j]);
+        }
+      }
+    }
+    else
+    {
+      fprintf(stdout, "%s", args[i]);
+    }
+    
     if (args[i + 1])
     {
       fprintf(stdout, " ");
@@ -57,6 +111,7 @@ int commandEcho(char **args, char **env)
   if (printNewLine)
     fprintf(stdout, "\n");
 
+  fflush(stdout);
   return 0;
 }
 
@@ -135,6 +190,7 @@ int commandEnv(char **env)
     free(buff);
   }
 
+  fflush(stdout);
   return 0;
 }
 
@@ -373,10 +429,12 @@ int commandWhich(char **args, char **env)
   if (fullpath == NULL)
   {
     fprintf(stdout, "%s: command not found\n", args[1]);
+    fflush(stdout);
     return -1;
   }
 
   fprintf(stdout, "%s\n", fullpath);
+  fflush(stdout);
   free(fullpath);
   return 0;
 }
@@ -395,7 +453,9 @@ char *getFullPathOfWhich(char *command, char **env)
 
   while (tok)
   {
-    size_t len = myStrlen(tok) + 1 + myStrlen(command) + 1; // +1 for / and +1 for '\0'
+    size_t tok_len = myStrlen(tok);
+    size_t cmd_len = myStrlen(command);
+    size_t len = tok_len + 1 + cmd_len + 1; // +1 for / and +1 for '\0'
     char *buff = (char *)malloc(sizeof(char) * len);
     if (!buff)
     {
@@ -403,7 +463,8 @@ char *getFullPathOfWhich(char *command, char **env)
       return NULL;
     }
 
-    if (tok[len - 1] != *PATH_SEPARATOR)
+    // Check if the directory path already ends with /
+    if (tok_len > 0 && tok[tok_len - 1] != *PATH_SEPARATOR)
       snprintf(buff, len, "%s%s%s", tok, PATH_SEPARATOR, command);
     else
       snprintf(buff, len, "%s%s", tok, command);

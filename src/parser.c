@@ -208,30 +208,86 @@ Token *expandToken(Token *token, bool isOperator, bool isDQuotes, bool isSQuotes
     if (input[i] == '\\')
     {
       i++;
-      if (insertInTokenChar(expandedToken, input[i++]) == -1)
+      // In double quotes, only certain escape sequences are processed
+      // Others are kept as literal backslash + character
+      if (isDQuotes)
       {
-        goto errorHandle;
+        // In bash double quotes, only \$, \`, \", \\, and \newline are special
+        if (input[i] == '$' || input[i] == '`' || input[i] == '"' || input[i] == '\\' || input[i] == '\n')
+        {
+          // Remove the backslash, keep the character
+          if (insertInTokenChar(expandedToken, input[i++]) == -1)
+          {
+            goto errorHandle;
+          }
+        }
+        else
+        {
+          // Keep both the backslash and the character
+          if (insertInTokenChar(expandedToken, '\\') == -1)
+          {
+            goto errorHandle;
+          }
+          if (insertInTokenChar(expandedToken, input[i++]) == -1)
+          {
+            goto errorHandle;
+          }
+        }
+      }
+      else
+      {
+        // Outside quotes, backslash escapes the next character
+        if (insertInTokenChar(expandedToken, input[i++]) == -1)
+        {
+          goto errorHandle;
+        }
       }
     }
     else if (input[i] == '$') // find the enviornment variable related to the given token
     {
       i++;                           // skip $
-      char *envKeyStart = &input[i]; // starting pointer of enviornment variable key
-
-      while (input[i] && isalnum(input[i]) || input[i] == '_') // find the end point of enviornment variable name
-        i++;
-
-      char lastChar = input[i]; // store the last character so that we can replace it back
-      input[i] = '\0';          // after finding the enviornment variable we can subsitute back the input[i] = lastChar
-
-      char *envVal = myGetenv(envKeyStart, env);
-      if (insertInTokenStr(expandedToken, envVal) == -1)
+      
+      // Handle special cases: $$, $?, $!, etc.
+      if (input[i] == '$')
       {
-        goto errorHandle;
+        // $$ means process ID - convert to string
+        char pid_str[32];
+        snprintf(pid_str, sizeof(pid_str), "%d", getpid());
+        if (insertInTokenStr(expandedToken, pid_str) == -1)
+        {
+          goto errorHandle;
+        }
+        i++;
       }
+      else if (!input[i] || !(isalnum(input[i]) || input[i] == '_'))
+      {
+        // $ not followed by valid variable name - treat as literal $
+        if (insertInTokenChar(expandedToken, '$') == -1)
+        {
+          goto errorHandle;
+        }
+        // Don't increment i, continue processing the current character
+      }
+      else
+      {
+        // Regular environment variable expansion
+        char *envKeyStart = &input[i]; // starting pointer of enviornment variable key
 
-      input[i] = lastChar;
-      free(envVal);
+        while (input[i] && (isalnum(input[i]) || input[i] == '_')) // find the end point of enviornment variable name
+          i++;
+
+        char lastChar = input[i]; // store the last character so that we can replace it back
+        input[i] = '\0';          // after finding the enviornment variable we can subsitute back the input[i] = lastChar
+
+        char *envVal = myGetenv(envKeyStart, env);
+        if (insertInTokenStr(expandedToken, envVal) == -1)
+        {
+          goto errorHandle;
+        }
+
+        input[i] = lastChar;
+        free(envVal);
+      }
     }
     else
     {

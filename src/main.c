@@ -40,11 +40,16 @@ int main(int argc, char const *argv[], char *envp[])
 void shellLoop(char **envp)
 {
   history = createFDLL(100);
-  if (tcgetattr(STDIN_FILENO, &orig_termios) == -1)
-    exit(EXIT_FAILURE);
+  int isTerminal = isatty(STDIN_FILENO);
+  
+  if (isTerminal)
+  {
+    if (tcgetattr(STDIN_FILENO, &orig_termios) == -1)
+      exit(EXIT_FAILURE);
 
-  atexit(disableRawMode);
-  enableRawMode();
+    atexit(disableRawMode);
+    enableRawMode();
+  }
 
   char *input = NULL; // input string
   char *initialDirectory = getcwd(NULL, 0);
@@ -59,11 +64,36 @@ void shellLoop(char **envp)
   int status = 0;
   while (1)
   {
-    if (status == 0)
+    if (status == 0 && isTerminal)
       printShellStart(env, userName);
-    status = getInputString(history, &input);
-    if (input == NULL || status != 0)
-      continue;
+    
+    if (isTerminal)
+    {
+      status = getInputString(history, &input);
+      if (input == NULL || status != 0)
+        continue;
+    }
+    else
+    {
+      // Non-interactive mode: print the command being executed
+      status = getNonInteractiveInput(&input);
+      if (status == 1) // EOF
+        break;
+      if (status != 0 || input == NULL)
+        continue;
+      
+      // Skip comments and empty lines
+      if (input[0] == '#' || input[0] == '\0')
+      {
+        free(input);
+        input = NULL;
+        continue;
+      }
+      
+      // Echo the command like bash does
+      printf("$ %s\n", input);
+      fflush(stdout);
+    }
 
     VectorToken *tokenVec = getTokens(input, env);
     if (tokenVec == NULL)

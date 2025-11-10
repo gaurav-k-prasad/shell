@@ -1,1 +1,0 @@
-1. put temp files to temp directory

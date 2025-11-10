@@ -53,87 +53,64 @@ ai list processes and explain which one is using most CPU
 ### 1. Prerequisites
 
 Ensure your system has:
+```markdown
+# Gshell — A Simple Unix-like Shell (C)
 
-* A **Linux/Unix** environment
-* `gcc` compiler
-* `make` utility
+Gshell is a compact Unix-like command shell implemented in C. It provides a small, well-scoped set of POSIX-compatible shell features intended for learning, experimentation, and embedding in constrained environments.
 
-### 2. Setup
+This repository contains the source code, documentation, and utilities needed to build and run the shell on Linux/Unix systems.
 
-Clone the repository and compile:
+## Features
 
-```bash
-git clone https://github.com/gaurav-k-prasad/shell.git
-cd gshell
+- Command execution with arguments and environment
+- Pipelines (`cmd1 | cmd2`)
+- Conditional and sequential execution (`&&`, `||`, `;`)
+- I/O redirection (`<`, `>`, `>>`)
+- Background execution (`&`) and basic job control
+- Builtin commands (e.g. `cd`, `pwd`, `echo`, `env`, `export`, `unset`, `which`, `source`)
+- Custom line-editing and history (in-memory, fixed capacity)
+- Signal handling and terminal control using `termios`
+
+Note: The repository includes an optional command that integrates with an external helper process to produce suggested shell commands. That integration is not required for normal shell operation and is not emphasized in the documentation.
+
+## Documentation
+
+Detailed, topic-specific documentation is provided in the `docs/` directory. See:
+
+- `docs/features.md` — full feature list and behavior
+- `docs/architecture.md` — design notes and module responsibilities
+- `docs/usage.md` — build and runtime instructions
+- `docs/todos.md` — planned work and improvements
+- `docs/bugs.md` — known issues and edge cases
+
+## Build & Run
+
+Prerequisites:
+
+- Linux/Unix environment
+- `gcc` (or compatible C compiler)
+- `make`
+
+Build:
+
+```sh
 make
 ```
 
-### 3. Run the Shell
+Run:
 
-```bash
+```sh
 ./gshell
 ```
 
----
+## Contributing
 
-## 🧱 Example Commands
+Contributions are welcome. When submitting changes, prefer small, well-scoped pull requests. Suggested areas for improvement include tests, improved input handling, and safer temporary-file handling.
 
-```bash
-# Standard commands
-ls -l | grep .c
-make && ./a.out
-sleep 5 &
+If you add features that change the user-visible behavior, update the relevant `docs/*.md` files.
 
-# Mixed complex command
-ls | sort && echo "done" & cat < read.txt > write.txt
+## License
 
-# AI-driven commands
-ai explain about fork in linux
-ai create a new directory in the parent directory of current folder
+This project is licensed under the MIT License. See `LICENSE` for details when present.
+
 ```
-
----
-
-## 🧠 System Overview
-
-| Module               | Description                                                                                                     |
-| -------------------- | --------------------------------------------------------------------------------------------------------------- |
-| **Parser**           | Tokenizes input and builds command structures                                                                   |
-| **Executor**         | Executes commands using `fork()`, `execvp()`, and handles pipes/redirection                                     |
-| **Job Control**      | Manages background/foreground processes using signals                                                           |
-| **Terminal Handler** | Uses `termios` for raw input, handling keys and signals                                                         |
-| **AI Layer**         | Parses natural language, uses context (recent commands, OS info, errors), and generates safe executable actions |
-| **Error Logger**     | Records failed executions and provides context for the AI system to learn from                                  |
-
----
-
-## 🧩 Design Highlights
-
-* **Process Management:** Built using `fork()`, `execvp()`, `waitpid()`, and `pipe()`
-* **Terminal Handling:** Implemented using raw input via `termios`
-* **Signal Safety:** Handles `SIGINT`, `SIGTSTP`, `SIGCHLD` gracefully
-* **Contextual AI:** Analyzes previous interactions and command failures
-* **Security Guardrails:** Prevents harmful commands and provides warnings before execution
-
----
-
-## 📚 Author’s Note
-
-This project is developed purely in **C** for **Linux/Unix-based systems** and is not compatible with Windows.
-It serves as both an **educational tool** for learning Unix process management and a **demonstration** of AI-enhanced command-line automation.
-
-The AI integration showcases how natural language processing concepts can make system-level interfaces more accessible, adaptive, and safe to use.
-
----
-
-## 🧾 License
-
-This project is open source under the **MIT License**.
-
----
-
-## 🙌 Acknowledgements
-
-* *The Linux man pages* (`man 2 fork`, `man 3 termios`, etc.)
-* *Advanced Programming in the UNIX Environment* by W. Richard Stevens
-* POSIX documentation for process and signal management

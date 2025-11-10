@@ -27,4 +27,14 @@ void disableRawMode();
  */
 int getInputString(ForgettingDoublyLinkedList *history, char **input);
 
+/**
+ * @brief Get input from non-interactive source (pipe or file)
+ *
+ * @param input reference to where to store the output
+ * 
+ * @warning Free required
+ * @return int status -1 if failed, 1 if EOF, 0 if success
+ */
+int getNonInteractiveInput(char **input);
+
 #endif
